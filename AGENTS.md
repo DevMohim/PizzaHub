@@ -18,6 +18,10 @@ Tech stack
 - Payments: Stripe Checkout with server-verified webhooks for vendor subscriptions only.
 - Image hosting: ImgBB file uploads are required for menu item images.
 Keep the client and server in separate GitHub repositories. Store credentials in environment variables. Never commit .env files or secrets.
+Typography (fonts)
+- Headings (h1–h6), section headings, buttons, the navbar logo, and menu item names: Plus Jakarta Sans — use `font-heading` (mapped to `--font-heading` in globals.css).
+- Body text, item descriptions, prices, and dashboard content: Inter — the default `font-sans` body font.
+- Never use Poppins. It has been removed from the project (`next/font` in layout.tsx and the `--font-poppins` token in globals.css).
 Product and roles
 PizzaHub lets customers browse local restaurant menus and place food orders. Vendors manage restaurant profiles, menu items, orders, and subscriptions. Admins manage users, review menu items, and view transactions.
 - Customers: Browse, search, filter, sort, and view approved active items; place orders with delivery details; track orders; cancel pending orders; manage their profiles.

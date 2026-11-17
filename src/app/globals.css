@@ -1,26 +1,217 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@custom-variant dark (&:is(.dark *));
+
+/* ---------- PizzaHub-only tokens (shadcn e nei) ---------- */
+@theme {
+  --color-primary-hover: #C62828;
+  --color-dark: #1F2329;
+  --color-dark-secondary: #454B54;
+  --color-surface: #FFFFFF;
+
+  --color-success: #16A34A;
+  --color-warning: #F59E0B;
+  --color-danger: #DC2626;
+
+  --font-inter: "Inter", sans-serif;
+  --font-jakarta: "Plus Jakarta Sans", sans-serif;
+  --font-sans: "Inter", sans-serif;
+  --font-heading: "Plus Jakarta Sans", sans-serif;
 }
 
+/* ---------- shadcn token mapping ---------- */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ---------- Light theme (PizzaHub palette) ---------- */
+:root {
+  --background: #FFF9F3;
+  --foreground: #1F2329;
+  --card: #FFFFFF;
+  --card-foreground: #1F2329;
+  --popover: #FFFFFF;
+  --popover-foreground: #1F2329;
+  --primary: #E53935;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FF8A00;
+  --secondary-foreground: #FFFFFF;
+  --muted: #F6EEE7;
+  --muted-foreground: #6B7280;
+  --accent: #FFF0E5;
+  --accent-foreground: #1F2329;
+  --destructive: #DC2626;
+  --border: #F0E5DC;
+  --input: #F0E5DC;
+  --ring: #E53935;
+
+  --chart-1: #E53935;
+  --chart-2: #FF8A00;
+  --chart-3: #F59E0B;
+  --chart-4: #1F2329;
+  --chart-5: #6B7280;
+
+  --radius: 0.625rem;
+
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1F2329;
+  --sidebar-primary: #E53935;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FFF0E5;
+  --sidebar-accent-foreground: #1F2329;
+  --sidebar-border: #F0E5DC;
+  --sidebar-ring: #E53935;
+
+  --gradient-primary: linear-gradient(120deg, #E53935 0%, #FF8A00 100%);
+  --gradient-dark: linear-gradient(120deg, #1F2329 0%, #454B54 100%);
+  --gradient-warm: linear-gradient(120deg, #FFF0E5 0%, #FFE0D0 100%);
+}
+
+/* ---------- Dark theme ---------- */
+.dark {
+  --background: #16181C;
+  --foreground: #FFF9F3;
+  --card: #1F2329;
+  --card-foreground: #FFF9F3;
+  --popover: #1F2329;
+  --popover-foreground: #FFF9F3;
+  --primary: #EF5350;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FF8A00;
+  --secondary-foreground: #FFFFFF;
+  --muted: #2A2F36;
+  --muted-foreground: #9CA3AF;
+  --accent: #2A2F36;
+  --accent-foreground: #FFF9F3;
+  --destructive: #EF4444;
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: #EF5350;
+
+  --sidebar: #1F2329;
+  --sidebar-foreground: #FFF9F3;
+  --sidebar-primary: #EF5350;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #2A2F36;
+  --sidebar-accent-foreground: #FFF9F3;
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: #EF5350;
+}
+
+/* ---------- Base ---------- */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+
+  button, input, textarea, select {
+    font: inherit;
+  }
+
+  /* Buttons use Plus Jakarta Sans */
+  button,
+  .btn-primary,
+  .btn-dark {
+    font-family: var(--font-heading);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ---------- Components ---------- */
+@layer components {
+  .btn-primary {
+    border: 0;
+    border-radius: 10px;
+    padding: 12px 24px;
+    background: var(--gradient-primary);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .btn-primary:hover {
+    background: var(--color-primary-hover);
+  }
+
+  .btn-dark {
+    border: 0;
+    border-radius: 10px;
+    padding: 12px 24px;
+    background: var(--color-dark);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .card {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    background: var(--card);
+  }
+
+  .gradient-text {
+    background: var(--gradient-primary);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
 }
