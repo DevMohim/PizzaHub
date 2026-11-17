@@ -8,11 +8,15 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "cn";
 import MyLogo from '@/assets/pizza-logo.png'
 import Image from "next/image";
+import { useSession } from "@/lib/auth-client";
+import ShowMenuItems from "../Navbar/ShowMenuItems";
+import { TSessionUser } from "@/types/user.type";
 
 const navLinks = [
   { label: "Home", href: "/" },
   { label: "Browse Menu", href: "/browse-menu" },
 ];
+
 
 function Logo() {
   return (
@@ -57,6 +61,16 @@ function NavLink({ label, href }: { label: string; href: string }) {
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const {data : session} = useSession()
+  const user: TSessionUser | undefined = session?.user
+    ? { ...session.user, image: session.user.image ?? "" }
+    : undefined
+
+    const authenticateNavLinks = [
+      { label: "Home", href: "/" },
+      { label: "Browse Menu", href: "/browse-menu" },
+      { label: "Dashboard", href: `/dashboard/${user?.role}` },
+    ];
 
   return (
     <header className="bg-background/95 sticky top-0 z-50 border-b border-border backdrop-blur">
@@ -69,31 +83,49 @@ const Navbar = () => {
           className="hidden items-center md:flex"
           aria-label="Main navigation"
         >
-          {navLinks.map((link) => (
-            <NavLink key={link.href} {...link} />
-          ))}
+          {user ? (
+            <>
+              {authenticateNavLinks.map((link) => (
+                <NavLink key={link.href} {...link} />
+              ))}
+            </>
+          ) : (
+            <>
+              {navLinks.map((link) => (
+                <NavLink key={link.href} {...link} />
+              ))}
+            </>
+          )}
         </nav>
 
         {/* Right: Auth buttons */}
         <div className="flex shrink-0 items-center gap-2">
-          <Link
-            href="/login"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "lg" }),
-              "hidden sm:inline-flex",
-            )}
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/register"
-            className={cn(
-              buttonVariants({ variant: "default", size: "lg" }),
-              "bg-(image:--gradient-primary) text-white hover:opacity-90",
-            )}
-          >
-            Join Free
-          </Link>
+          {user ? (
+            <>
+              <ShowMenuItems user={user} />
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "lg" }),
+                  "hidden sm:inline-flex",
+                )}
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/register"
+                className={cn(
+                  buttonVariants({ variant: "default", size: "lg" }),
+                  "bg-(image:--gradient-primary) text-white hover:opacity-90",
+                )}
+              >
+                Join Free
+              </Link>
+            </>
+          )}
 
           {/* Mobile menu toggle */}
           <Button
@@ -120,26 +152,33 @@ const Navbar = () => {
           aria-label="Mobile navigation"
         >
           <div className="flex flex-col gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className="font-heading rounded-md px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-muted hover:text-foreground"
-              >
-                {link.label}
-              </Link>
-            ))}
-            <Link
-              href="/signin"
-              onClick={() => setMobileOpen(false)}
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "mt-2 sm:hidden",
-              )}
-            >
-              Sign In
-            </Link>
+            {user ? (
+              <>
+                {authenticateNavLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="font-heading rounded-md px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-muted hover:text-foreground"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </>
+            ) : (
+              <>
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="font-heading rounded-md px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-muted hover:text-foreground"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </>
+            )}
           </div>
         </nav>
       )}
