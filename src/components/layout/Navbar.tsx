@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, Pizza, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "cn";
 import MyLogo from '@/assets/pizza-logo.png'
@@ -65,7 +65,10 @@ const Navbar = () => {
         <Logo />
 
         {/* Middle: Routes */}
-        <nav className="hidden items-center md:flex" aria-label="Main navigation">
+        <nav
+          className="hidden items-center md:flex"
+          aria-label="Main navigation"
+        >
           {navLinks.map((link) => (
             <NavLink key={link.href} {...link} />
           ))}
@@ -74,19 +77,19 @@ const Navbar = () => {
         {/* Right: Auth buttons */}
         <div className="flex shrink-0 items-center gap-2">
           <Link
-            href="/signin"
+            href="/login"
             className={cn(
               buttonVariants({ variant: "outline", size: "lg" }),
-              "hidden sm:inline-flex"
+              "hidden sm:inline-flex",
             )}
           >
             Sign In
           </Link>
           <Link
-            href="/signup"
+            href="/register"
             className={cn(
               buttonVariants({ variant: "default", size: "lg" }),
-              "bg-[image:var(--gradient-primary)] text-white hover:opacity-90"
+              "bg-(image:--gradient-primary) text-white hover:opacity-90",
             )}
           >
             Join Free
@@ -101,7 +104,11 @@ const Navbar = () => {
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((open) => !open)}
           >
-            {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            {mobileOpen ? (
+              <X className="size-5" />
+            ) : (
+              <Menu className="size-5" />
+            )}
           </Button>
         </div>
       </div>
@@ -126,7 +133,10 @@ const Navbar = () => {
             <Link
               href="/signin"
               onClick={() => setMobileOpen(false)}
-              className={cn(buttonVariants({ variant: "outline" }), "mt-2 sm:hidden")}
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "mt-2 sm:hidden",
+              )}
             >
               Sign In
             </Link>
