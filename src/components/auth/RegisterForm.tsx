@@ -1,22 +1,51 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Eye, EyeOff, ImagePlus, Store, User, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff, ImagePlus, Loader2, Store, User, X } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FieldLabel } from "@/components/ui/field";
+import { signUp } from "@/lib/auth-client";
 
 type Role = "customer" | "vendor";
+
+interface RegisterValues {
+  fullName: string;
+  email: string;
+  password: string;
+  role: Role;
+  image?: File;
+}
 
 interface RegisterFormProps {
   /** Initial selected role. @default "customer" */
   defaultRole?: Role;
   submitLabel?: string;
-  /** Optional submit handler; a placeholder handler is used by default. */
-  onSubmit?: (event: React.FormEvent<HTMLFormElement>) => void;
+  /** Optional custom submit handler; the default signs the user up via Better Auth. */
+  onSubmit?: (values: RegisterValues) => Promise<void> | void;
 }
+
+// /** Uploads a file to ImgBB. Requires NEXT_PUBLIC_IMGBB_API_KEY. */
+// async function uploadToImgbb(file: File): Promise<string | undefined> {
+//   const apiKey = process.env.IMGBB_API_KEY;
+//   if (!apiKey) return undefined;
+
+//   const body = new FormData();
+//   body.append("image", file);
+//   const response = await fetch(
+//     `https://api.imgbb.com/1/upload?key=${apiKey}`,
+//     { method: "POST", body }
+//   );
+//   const result = await response.json();
+//   if (!result?.success || !result?.data?.url) {
+//     throw new Error("Image upload failed");
+//   }
+//   return result.data.url as string;
+// }
 
 const roleOptions: Array<{
   value: Role;
@@ -38,43 +67,128 @@ const roleOptions: Array<{
   },
 ];
 
-/**
- * Reusable registration form.
- * UI only — submit logic is intentionally not implemented yet.
- */
+
 function RegisterForm({
   defaultRole = "customer",
   submitLabel = "Create Account",
-  onSubmit,
 }: RegisterFormProps) {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  const [imageFileName, setImageFileName] = useState<string | null>(null);
+  const [image, setImage] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
 
   // Local preview only — upload to ImgBB happens on submit later.
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+
     if (!file) return;
-    setImagePreviewUrl((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return URL.createObjectURL(file);
+
+    setImage(file);
+
+    const url = URL.createObjectURL(file);
+
+    setImagePreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return url;
     });
-    setImageFileName(file.name);
   };
 
   const handleRemoveImage = () => {
-    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
-    setImagePreviewUrl(null);
-    setImageFileName(null);
-    if (imageInputRef.current) imageInputRef.current.value = "";
+    setImage(null);
+
+    setImagePreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
   };
 
-  // Declared only — registration logic will be added later.
-  const handleRegisterSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleImageUpload = async (): Promise<string | null> => {
+    if (!image) return null;
+
+    const formData = new FormData();
+
+    formData.append("image", image);
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.imageUrl) {
+      throw new Error(result.message || "Image upload failed");
+    }
+
+    return result.imageUrl;
+  };
+  
+
+
+  const handleRegisterSubmit = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
-    onSubmit?.(event);
+    setLoading(true);
+
+    const formData = new FormData(event.currentTarget);
+
+    const nameValue = String(formData.get("name") ?? "");
+    const emailValue = String(formData.get("email") ?? "");
+    const passwordValue = String(formData.get("password") ?? "");
+    const confirmPasswordValue = String(formData.get("confirmPassword") ?? "");
+
+
+    const roleValue = (formData.get("role") as Role) || defaultRole;
+
+    const userData = {
+      name: nameValue,
+      email: emailValue,
+      password: passwordValue,
+    };
+
+    if (!nameValue || !emailValue || !passwordValue || !confirmPasswordValue) {
+      setLoading(false);
+      return;
+    }
+
+    if (passwordValue !== confirmPasswordValue) {
+      toast.error("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const imageUrl = await handleImageUpload();
+
+      const { data, error } = await signUp.email({
+        ...userData,
+        role: roleValue, // saved to DB as a Better Auth additional field
+        image: imageUrl ?? undefined,
+      });
+
+      if (error) {
+        toast.error(error.message ?? "Failed to create account");
+        throw error;
+      }
+
+      if(data){
+        toast.success("Welcome to PizzaHub 🍕");
+        router.push("/");
+      }
+    } catch (error) {
+      console.error("Register error:", error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const passwordType = showPassword ? "text" : "password";
@@ -103,7 +217,7 @@ function RegisterForm({
               />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-xs font-medium">
-                  {imageFileName}
+                  {image?.name ?? "Selected image"}
                 </span>
                 <span className="text-muted-foreground block text-[11px]">
                   Click to change image
@@ -131,7 +245,7 @@ function RegisterForm({
           <Input
             ref={imageInputRef}
             id="profile-image"
-            name="profileImage"
+            name="image"
             type="file"
             accept="image/*"
             onChange={handleImageChange}
@@ -143,7 +257,11 @@ function RegisterForm({
       {/* Role */}
       <div className="space-y-2">
         <Label>Register as</Label>
-        <RadioGroup name="role" defaultValue={defaultRole} className="grid-cols-2 gap-2">
+        <RadioGroup
+          name="role"
+          defaultValue={defaultRole}
+          className="grid-cols-2 gap-2"
+        >
           {roleOptions.map((role) => (
             <FieldLabel
               key={role.value}
@@ -169,7 +287,7 @@ function RegisterForm({
         <Label htmlFor="full-name">Full Name</Label>
         <Input
           id="full-name"
-          name="fullName"
+          name="name"
           type="text"
           required
           placeholder="e.g. John Doe"
@@ -200,6 +318,7 @@ function RegisterForm({
             id="password"
             name="password"
             type={passwordType}
+            minLength={8}
             required
             placeholder="••••••••"
             autoComplete="new-password"
@@ -225,6 +344,7 @@ function RegisterForm({
           <Input
             id="confirm-password"
             name="confirmPassword"
+            minLength={8}
             type={confirmPasswordType}
             required
             placeholder="••••••••"
@@ -235,9 +355,7 @@ function RegisterForm({
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label={
-              showConfirmPassword ? "Hide password" : "Show password"
-            }
+            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
             onClick={() => setShowConfirmPassword((visible) => !visible)}
             className="text-muted-foreground absolute top-1/2 right-1 -translate-y-1/2"
           >
@@ -250,9 +368,17 @@ function RegisterForm({
       <Button
         type="submit"
         size="lg"
-        className="h-10 w-full bg-[image:var(--gradient-primary)] text-white hover:opacity-90"
+        disabled={loading}
+        className="h-10 w-full bg-(image:--gradient-primary) text-white hover:opacity-90 cursor-pointer"
       >
-        {submitLabel}
+        {loading ? (
+          <>
+            <Loader2 className="animate-spin" />
+            Creating account…
+          </>
+        ) : (
+          submitLabel
+        )}
       </Button>
     </form>
   );
