@@ -21,7 +21,7 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { authClient } from "@/lib/auth-client";
+import { signOut } from "@/lib/auth-client";
 import { TSessionUser } from "@/types/user.type";
 import { cn } from "cn";
 
@@ -47,7 +47,7 @@ const ShowMenuItems = ({ user }: { user: TSessionUser }) => {
   const router = useRouter();
 
   const handleLogout = async () => {
-    const { error } = await authClient.signOut();
+    const { error } = await signOut();
     if (error) {
       toast.error(error.message ?? "Failed to log out");
       return;

@@ -9,9 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {  signIn } from "@/lib/auth-client";
 
-type Role = "customer" | "vendor";
-
-
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
@@ -80,20 +77,20 @@ function LoginForm() {
   const handleGoogleSignIn = async () => {
     if (googleLoading) return;
     setGoogleLoading(true);
-    // try {
-    //   const { error } = await authClient.signIn.social({
-    //     provider: "google",
-    //     callbackURL: "/",
-    //   });
-    //   if (error) {
-    //     toast.error(error.message ?? "Google sign-in failed");
-    //   }
+    try {
+      const { error } = await signIn.social({
+        provider: "google",
+        callbackURL: "/",
+      });
+      if (error) {
+        toast.error(error.message ?? "Google sign-in failed");
+      }
       
-    // } catch {
-    //   toast.error("Google sign-in failed. Please try again.");
-    // } finally {
-    //   setGoogleLoading(false);
-    // }
+    } catch {
+      toast.error("Google sign-in failed. Please try again.");
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   const passwordType = showPassword ? "text" : "password";
