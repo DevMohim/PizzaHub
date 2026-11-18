@@ -1,4 +1,4 @@
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider} from "@/components/ui/sidebar";
 import { ReactNode } from "react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 
@@ -9,9 +9,9 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
 
       {/* Full-width content area — children always fill the remaining space */}
       <SidebarInset className="min-w-0">
-        <div className="flex items-center gap-2 border-b border-border px-4 py-2">
+        {/* <div className="flex items-center gap-2 border-b border-border px-4 py-2">
           <SidebarTrigger />
-        </div>
+        </div> */}
 
         <div className="w-full flex-1">{children}</div>
       </SidebarInset>

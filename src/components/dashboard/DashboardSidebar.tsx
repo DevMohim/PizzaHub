@@ -18,6 +18,29 @@ import { TSessionUser, UserRole } from "@/types/user.type";
 import { cn } from "cn";
 import { roleBasedMenuItems } from "@/config/roleBasedMenuItems";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+/**
+ * Finds the menu entry that should look active for the current pathname.
+ * - Exact matches win (e.g. `/dashboard/vendor` → Overview only).
+ * - Otherwise the deepest parent route is highlighted, so a nested page
+ *   like `/dashboard/vendor/menu-items/new` still lights up "My Menu Items".
+ */
+const getActiveHref = (
+  pathname: string,
+  items: { href: string }[],
+): string | undefined => {
+  const normalize = (href: string) => href.replace(/\/+$/, "");
+
+  const exact = items.find((item) => normalize(item.href) === pathname);
+  if (exact) return exact.href;
+
+  const parents = items
+    .filter((item) => pathname.startsWith(`${normalize(item.href)}/`))
+    .sort((a, b) => normalize(b.href).length - normalize(a.href).length);
+
+  return parents[0]?.href;
+};
 
 const roleMeta: Record<UserRole, { label: string; icon: typeof User }> = {
   customer: { label: "Customer", icon: User },
@@ -27,6 +50,7 @@ const roleMeta: Record<UserRole, { label: string; icon: typeof User }> = {
 
 const DashboardSidebar = () => {
   const { data: session, isPending } = useSession();
+  const pathname = usePathname();
   const user: TSessionUser | undefined = session?.user
     ? { ...session.user, image: session.user.image ?? "" }
     : undefined;
@@ -35,6 +59,7 @@ const DashboardSidebar = () => {
   const RoleIcon = roleMeta[role].icon;
 
   const items = roleBasedMenuItems
+  const activeHref = getActiveHref(pathname, items[role]);
 
   return (
     <Sidebar>
@@ -94,14 +119,32 @@ const DashboardSidebar = () => {
       <SidebarContent>
         <SidebarGroup />
         <SidebarMenu>
-          {items[role].map((item) => (
-            <SidebarMenuItem key={item.label}>
-              <SidebarMenuButton render={<Link href={item.href} />}>
-                <item.icon />
-                <span>{item.label}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+          {items[role].map((item) => {
+            const isActive = activeHref === item.href;
+            return (
+              <SidebarMenuItem key={item.label}>
+                <SidebarMenuButton
+                  render={<Link href={item.href} />}
+                  isActive={isActive}
+                  className={cn(
+                    "relative",
+                    isActive &&
+                      "data-active:bg-sidebar-primary/10! data-active:font-semibold! data-active:text-sidebar-primary!",
+                  )}
+                >
+                  <item.icon />
+                  <span>{item.label}</span>
+                  {/* Active route indicator bar */}
+                  {isActive && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-y-1.5 left-0 w-1 rounded-full bg-sidebar-primary"
+                    />
+                  )}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
         </SidebarMenu>
         <SidebarGroup />
       </SidebarContent>

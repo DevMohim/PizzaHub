@@ -14,6 +14,8 @@ export interface IMenuItem {
   price: number;
   location: string;
   imageUrl: string;
+  /** Optional gallery — item details shows these when available. */
+  images?: string[];
   userEmail: string | undefined;
   userId: string | undefined;
   /** Set by the backend on create ("pending") and by admin review. */

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, MapPin, Pizza, Store } from "lucide-react";
+import { ArrowRight, MapPin, Pizza } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { getCategoryLabel } from "@/config/menuCategories";
@@ -16,8 +16,6 @@ interface MenuCardProps {
  * and reusable across public menu surfaces.
  */
 const MenuCard = ({ item }: MenuCardProps) => {
-  const detailsHref = item._id ? `/menu/${item._id}` : "/browse-menu";
-
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
       {/* Image */}
@@ -68,7 +66,7 @@ const MenuCard = ({ item }: MenuCardProps) => {
         </div>
 
         {/* Vendor info */}
-        <div className="mt-auto flex items-center gap-2 border-t border-border pt-3">
+        {/* <div className="mt-auto flex items-center gap-2 border-t border-border pt-3">
           <span className="bg-accent text-primary flex size-7 shrink-0 items-center justify-center rounded-full">
             <Store className="size-3.5" aria-hidden="true" />
           </span>
@@ -80,13 +78,13 @@ const MenuCard = ({ item }: MenuCardProps) => {
               {item.userEmail || "Local Pizzeria"}
             </span>
           </span>
-        </div>
+        </div> */}
       </div>
 
       {/* CTA */}
       <div className="px-4 pb-4">
         <Link
-          href={detailsHref}
+          href={`/browse-menu/${item._id}`}
           className={cn(
             buttonVariants({ size: "lg" }),
             "h-10 w-full bg-(image:--gradient-primary) text-white hover:opacity-90",

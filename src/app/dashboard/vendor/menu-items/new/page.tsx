@@ -132,7 +132,6 @@ const NewMenuItemPage = () => {
   // const {data:session} = useSession()
   // const user = session?.user
   const user = useUserFromClient();
-  console.log(user);
 
   const handleCreateMenuItem = async (
     event: React.FormEvent<HTMLFormElement>,
