@@ -24,16 +24,7 @@ import {
 import { useRouter } from "next/navigation";
 import { createMenuItem } from "@/lib/actions/menuitems";
 import { useUserFromClient } from "@/utils/getUserFromClient";
-
-/** Menu categories required by the assignment. */
-const MENU_CATEGORIES = [
-  { value: "classic-pizzas", label: "Classic Pizzas" },
-  { value: "vegetarian-pizzas", label: "Vegetarian Pizzas" },
-  { value: "meat-lovers", label: "Meat Lovers" },
-  { value: "specialty-gourmet-pizzas", label: "Specialty / Gourmet Pizzas" },
-  { value: "sides-appetizers", label: "Sides & Appetizers" },
-  { value: "beverages-desserts", label: "Beverages & Desserts" },
-] as const;
+import { MENU_CATEGORIES } from "@/config/menuCategories";
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
 
