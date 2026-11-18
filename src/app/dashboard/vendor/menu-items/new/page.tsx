@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
+import { createMenuItem } from "@/lib/actions/menuitems";
+import { useUserFromClient } from "@/utils/getUserFromClient";
 
 /** Menu categories required by the assignment. */
 const MENU_CATEGORIES = [
@@ -36,7 +38,10 @@ const MENU_CATEGORIES = [
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 type FieldErrors = Partial<
-  Record<"itemName" | "category" | "description" | "price" | "location" | "image", string>
+  Record<
+    "itemName" | "category" | "description" | "price" | "location" | "image",
+    string
+  >
 >;
 
 const NewMenuItemPage = () => {
@@ -53,7 +58,7 @@ const NewMenuItemPage = () => {
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const router = useRouter()
+  const router = useRouter();
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -62,12 +67,18 @@ const NewMenuItemPage = () => {
     setFieldErrors((prev) => ({ ...prev, image: undefined }));
 
     if (!file.type.startsWith("image/")) {
-      setFieldErrors((prev) => ({ ...prev, image: "Please choose an image file." }));
+      setFieldErrors((prev) => ({
+        ...prev,
+        image: "Please choose an image file.",
+      }));
       return;
     }
 
     if (file.size > MAX_IMAGE_SIZE) {
-      setFieldErrors((prev) => ({ ...prev, image: "Image must be 10 MB or smaller." }));
+      setFieldErrors((prev) => ({
+        ...prev,
+        image: "Image must be 10 MB or smaller.",
+      }));
       return;
     }
 
@@ -127,6 +138,11 @@ const NewMenuItemPage = () => {
     return errors;
   };
 
+  // const {data:session} = useSession()
+  // const user = session?.user
+  const user = useUserFromClient();
+  console.log(user);
+
   const handleCreateMenuItem = async (
     event: React.FormEvent<HTMLFormElement>,
   ) => {
@@ -155,15 +171,17 @@ const NewMenuItemPage = () => {
         description: description.trim(),
         price: Number(price),
         location: location.trim(),
-        images: [imageUrl],
-        status: "pending",
+        imageUrl: imageUrl,
+        userEmail:user?.email,
+        userId:user?.id,
       };
 
-      // TODO: POST menuItemPayload to the menu-items API once the endpoint is ready.
-      console.log("Menu item payload:", menuItemPayload);
+      const result = await createMenuItem(menuItemPayload);
 
-      toast.success("Menu item saved as pending review.");
-      
+      if (result) {
+        toast.success("Menu item saved as pending review.");
+      }
+
       // Reset the form.
       setItemName("");
       setCategory(null);
@@ -173,11 +191,12 @@ const NewMenuItemPage = () => {
       handleRemoveImage();
       setFieldErrors({});
       router.push(`/dashboard/vendor/menu-items`);
-
     } catch (error) {
       console.error("Create menu item error:", error);
       toast.error(
-        error instanceof Error ? error.message : "Something went wrong. Please try again.",
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -205,7 +224,11 @@ const NewMenuItemPage = () => {
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleCreateMenuItem} className="space-y-5" noValidate>
+          <form
+            onSubmit={handleCreateMenuItem}
+            className="space-y-5"
+            noValidate
+          >
             {/* Item name + Category */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div className="space-y-2">
@@ -222,7 +245,9 @@ const NewMenuItemPage = () => {
                   className="h-10"
                 />
                 {fieldErrors.itemName && (
-                  <p className="text-destructive text-sm">{fieldErrors.itemName}</p>
+                  <p className="text-destructive text-sm">
+                    {fieldErrors.itemName}
+                  </p>
                 )}
               </div>
 
@@ -249,7 +274,9 @@ const NewMenuItemPage = () => {
                   </SelectContent>
                 </Select>
                 {fieldErrors.category && (
-                  <p className="text-destructive text-sm">{fieldErrors.category}</p>
+                  <p className="text-destructive text-sm">
+                    {fieldErrors.category}
+                  </p>
                 )}
               </div>
             </div>
@@ -268,7 +295,9 @@ const NewMenuItemPage = () => {
                 className="min-h-28"
               />
               {fieldErrors.description && (
-                <p className="text-destructive text-sm">{fieldErrors.description}</p>
+                <p className="text-destructive text-sm">
+                  {fieldErrors.description}
+                </p>
               )}
             </div>
 
@@ -290,7 +319,9 @@ const NewMenuItemPage = () => {
                   className="h-10"
                 />
                 {fieldErrors.price && (
-                  <p className="text-destructive text-sm">{fieldErrors.price}</p>
+                  <p className="text-destructive text-sm">
+                    {fieldErrors.price}
+                  </p>
                 )}
               </div>
 
@@ -308,7 +339,9 @@ const NewMenuItemPage = () => {
                   className="h-10"
                 />
                 {fieldErrors.location && (
-                  <p className="text-destructive text-sm">{fieldErrors.location}</p>
+                  <p className="text-destructive text-sm">
+                    {fieldErrors.location}
+                  </p>
                 )}
               </div>
             </div>
