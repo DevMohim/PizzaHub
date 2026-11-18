@@ -195,7 +195,7 @@ const NewMenuItemPage = () => {
   };
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-8">
+    <div className="w-full px-4 py-8 md:px-6">
       <div className="mb-6">
         <h1 className="font-heading text-2xl font-bold sm:text-3xl">
           Add Menu Item

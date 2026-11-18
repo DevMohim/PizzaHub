@@ -1,4 +1,4 @@
-import { MapPin, Trash2 } from "lucide-react";
+import { MapPin, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getCategoryLabel } from "@/config/menuCategories";
@@ -34,8 +34,6 @@ const statusStyles: Record<
 
 interface MenuItemCardProps {
   item: IMenuItem;
-  /** Optional delete handler. Omit to render a non-functional button. */
-  onDelete?: (item: IMenuItem) => void;
 }
 
 /**
@@ -43,7 +41,7 @@ interface MenuItemCardProps {
  * delete button on the right. Presentational and reusable across the
  * vendor dashboard.
  */
-const MenuItemCard = ({ item, onDelete }: MenuItemCardProps) => {
+const MenuItemCard = ({ item }: MenuItemCardProps) => {
   const status: MenuItemStatus = item.status ?? "pending";
   const statusStyle = statusStyles[status] ?? statusStyles.pending;
 
@@ -103,9 +101,22 @@ const MenuItemCard = ({ item, onDelete }: MenuItemCardProps) => {
             statusStyle.className,
           )}
         >
-          <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
+          <span
+            className="size-1.5 rounded-full bg-current"
+            aria-hidden="true"
+          />
           {statusStyle.label}
         </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          aria-label={`Edit ${item.itemName}`}
+          title="Edit item"
+          className="shrink-0 cursor-pointer"
+        >
+          <Pencil />
+        </Button>
 
         <Button
           type="button"
@@ -113,9 +124,7 @@ const MenuItemCard = ({ item, onDelete }: MenuItemCardProps) => {
           size="icon"
           aria-label={`Delete ${item.itemName}`}
           title="Delete item"
-          onClick={onDelete ? () => onDelete(item) : undefined}
-          disabled={!onDelete}
-          className="shrink-0"
+          className="shrink-0 cursor-pointer"
         >
           <Trash2 />
         </Button>

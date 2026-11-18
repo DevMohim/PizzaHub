@@ -24,7 +24,7 @@ const MenuItemsPage = async () => {
   /* Not signed in — prompt instead of fetching. */
   if (!email) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 py-8">
+      <div className="w-full px-4 py-8 md:px-6">
         <Empty className="border border-border bg-card">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -70,7 +70,7 @@ const MenuItemsPage = async () => {
   ).length;
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8">
+    <div className="w-full px-4 py-8 md:px-6">
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -155,7 +155,7 @@ const MenuItemsPage = async () => {
 
       {/* Item list */}
       {!errorMessage && items.length > 0 && (
-        <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {items.map((item, index) => (
             <MenuItemCard
               key={item._id ?? index}
