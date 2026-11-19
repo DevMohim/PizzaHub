@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { getCategoryLabel } from "@/config/menuCategories";
 import { getMenuItemStatusStyle } from "@/config/menuItemStatus";
 import { IMenuItem, MenuItemStatus } from "@/types/menuItem.type";
-import { cn } from "cn";
+import StatusCapsule from "@/components/shared/StatusCapsule";
 
 interface MenuItemCardProps {
   item: IMenuItem;
@@ -69,18 +69,10 @@ const MenuItemCard = ({ item }: MenuItemCardProps) => {
 
       {/* Right — status capsule + delete, side by side */}
       <div className="flex shrink-0 flex-row items-center justify-between gap-3 border-t border-border pt-3 sm:justify-end sm:border-t-0 sm:pt-0">
-        <span
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase ring-1",
-            statusStyle.className,
-          )}
-        >
-          <span
-            className="size-1.5 rounded-full bg-current"
-            aria-hidden="true"
-          />
-          {statusStyle.label}
-        </span>
+        <StatusCapsule
+          label={statusStyle.label}
+          className={statusStyle.className}
+        />
         <Button
           type="button"
           variant="outline"

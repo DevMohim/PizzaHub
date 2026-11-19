@@ -104,7 +104,7 @@ const ItemDetailsPage = async ({ params }: ItemDetailsPageProps) => {
 
   /* Only approved & active items can be ordered. */
   const isOrderable =
-    item.status === "approved" || item.status === "active";
+    item.status === "approved" && item.active === true;
 
   const galleryImages =
     item.images && item.images.length > 0

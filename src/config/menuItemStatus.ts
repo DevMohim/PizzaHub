@@ -16,17 +16,9 @@ export const menuItemStatusStyles: Record<
     label: "Approved",
     className: "bg-success/10 text-success ring-success/30",
   },
-  active: {
-    label: "Active",
-    className: "bg-success/10 text-success ring-success/30",
-  },
   rejected: {
     label: "Rejected",
     className: "bg-destructive/10 text-destructive ring-destructive/30",
-  },
-  inactive: {
-    label: "Inactive",
-    className: "bg-muted text-muted-foreground ring-border",
   },
 };
 

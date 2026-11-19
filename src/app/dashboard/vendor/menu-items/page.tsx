@@ -66,7 +66,7 @@ const MenuItemsPage = async () => {
   const total = items.length;
   const pending = items.filter((item) => (item.status ?? "pending") === "pending").length;
   const live = items.filter(
-    (item) => item.status === "approved" || item.status === "active",
+    (item) => item.status === "approved" && item.active === true,
   ).length;
 
   return (

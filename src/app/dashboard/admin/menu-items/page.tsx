@@ -1,6 +1,7 @@
 import {  MapPin, Pizza, Store } from "lucide-react";
 import MenuItemsFilters from "@/components/admin/MenuItemsFilters";
 import MenuItemRowActions from "@/components/admin/MenuItemRowActions";
+import StatusCapsule from "@/components/shared/StatusCapsule";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -180,18 +181,10 @@ const ManageMenuItemsPage = async() => {
 
                         {/* Status capsule */}
                         <TableCell className="py-3 align-middle">
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase ring-1",
-                              statusStyle.className,
-                            )}
-                          >
-                            <span
-                              className="size-1.5 rounded-full bg-current"
-                              aria-hidden="true"
-                            />
-                            {statusStyle.label}
-                          </span>
+                          <StatusCapsule
+                            label={statusStyle.label}
+                            className={statusStyle.className}
+                          />
                         </TableCell>
 
                         {/* Submitted date */}
