@@ -170,8 +170,8 @@ function RegisterForm({
 
       const { data, error } = await signUp.email({
         ...userData,
-        role: roleValue, // saved to DB as a Better Auth additional field
-        image: imageUrl ?? undefined,
+        role: roleValue,
+        image: imageUrl ?? undefined
       });
 
       if (error) {

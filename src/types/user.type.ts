@@ -21,5 +21,6 @@ export interface IUser{
   createdAt: string; // ISO date string from JSON
   updatedAt: string; // ISO date string from JSON
   role: "vendor" | "admin";
+  status: string;
   isBlocked?: boolean
 };
