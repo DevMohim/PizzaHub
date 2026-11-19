@@ -1,7 +1,6 @@
-import { Info, MapPin, Pizza, Store } from "lucide-react";
+import {  MapPin, Pizza, Store } from "lucide-react";
 import MenuItemsFilters from "@/components/admin/MenuItemsFilters";
 import MenuItemRowActions from "@/components/admin/MenuItemRowActions";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,

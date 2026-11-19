@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Eye, EyeOff, Trash2, X } from "lucide-react";
+import { Check, Eye, EyeOff, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import toast from "react-hot-toast";
@@ -12,6 +12,7 @@ import {
   updateActiveStatus,
 } from "@/lib/actions/menuitems";
 import { IMenuItem, MenuItemStatus } from "@/types/menuItem.type";
+import DeleteMenuItemsDialog from "./DeleteMenuItemsDialog";
 
 interface MenuItemRowActionsProps {
   item: IMenuItem;
@@ -120,16 +121,7 @@ const MenuItemRowActions = ({ item }: MenuItemRowActionsProps) => {
       {approve}
       {reject}
       {toggleStatus}
-      <Button
-        type="button"
-        variant="destructive"
-        size="sm"
-        disabled={isPending}
-        aria-label={`Delete ${name}`}
-      >
-        <Trash2 aria-hidden="true" />
-        Delete
-      </Button>
+      <DeleteMenuItemsDialog isPending ={isPending} item={item}/>
     </div>
   );
 };

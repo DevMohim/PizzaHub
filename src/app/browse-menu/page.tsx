@@ -25,9 +25,7 @@ const BrowseMenuItemsPage = async () => {
       "We couldn't load the menu right now. Please refresh and try again.";
   }
 
-  const visibleItems = menuItems.filter(
-    (item) => item.status === "approved" || item.status === "active"
-  );
+  const visibleItems = menuItems.filter((item) => item.status === "approved" && item.active === true);
   /* Unique locations for the location filter. */
   const locations = Array.from(
     new Set(

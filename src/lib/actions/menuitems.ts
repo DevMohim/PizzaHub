@@ -29,6 +29,32 @@ export const createMenuItem = async (data :IMenuItem) => {
   }
 };
 
+export const deleteMenuItem = async ( id:string) => {
+if (!id) {
+  throw new Error("Menu item id is required.");
+}
+
+try {
+  const res = await fetch(`${BASE_URL}/menuItems/${id}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      `Failed to update menu item status. Server returned ${res.status} ${res.statusText}.`,
+    );
+  }
+
+  return await res.json();
+} catch (error) {
+  console.error("Update menu item status failed:", error);
+
+  // আসল error message/cause যেন caller পর্যন্ত পৌঁছায়
+  throw new Error("Could not update menu item status.", { cause: error });
+}
+}
+
+
 export const updateApproveStatus = async (id:string) => {
   if (!id) {
     throw new Error("Menu item id is required.");
