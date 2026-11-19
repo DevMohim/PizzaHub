@@ -2,35 +2,9 @@ import { MapPin, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getCategoryLabel } from "@/config/menuCategories";
+import { getMenuItemStatusStyle } from "@/config/menuItemStatus";
 import { IMenuItem, MenuItemStatus } from "@/types/menuItem.type";
 import { cn } from "cn";
-
-/** Visual style per item status — the status capsule on the right side. */
-const statusStyles: Record<
-  MenuItemStatus,
-  { label: string; className: string }
-> = {
-  pending: {
-    label: "Pending",
-    className: "bg-warning/10 text-warning ring-warning/30",
-  },
-  approved: {
-    label: "Approved",
-    className: "bg-success/10 text-success ring-success/30",
-  },
-  active: {
-    label: "Active",
-    className: "bg-success/10 text-success ring-success/30",
-  },
-  rejected: {
-    label: "Rejected",
-    className: "bg-destructive/10 text-destructive ring-destructive/30",
-  },
-  inactive: {
-    label: "Inactive",
-    className: "bg-muted text-muted-foreground ring-border",
-  },
-};
 
 interface MenuItemCardProps {
   item: IMenuItem;
@@ -43,7 +17,7 @@ interface MenuItemCardProps {
  */
 const MenuItemCard = ({ item }: MenuItemCardProps) => {
   const status: MenuItemStatus = item.status ?? "pending";
-  const statusStyle = statusStyles[status] ?? statusStyles.pending;
+  const statusStyle = getMenuItemStatusStyle(status);
 
   return (
     <article className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-xs transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:gap-5">

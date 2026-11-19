@@ -26,7 +26,7 @@ const BrowseMenuItemsPage = async () => {
   }
 
   const visibleItems = menuItems.filter(
-    (item) => item.status === "approved" || item.status === "active" || item.status === 'pending',
+    (item) => item.status === "approved" || item.status === "active"
   );
   /* Unique locations for the location filter. */
   const locations = Array.from(
