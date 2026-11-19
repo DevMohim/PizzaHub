@@ -54,3 +54,80 @@ export const updateApproveStatus = async (id:string) => {
     throw new Error("Could not update menu item status.", { cause: error });
 }
 }
+
+export const updateRejectStatus = async (id:string) => {
+  if (!id) {
+    throw new Error("Menu item id is required.");
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/menuItems/${id}/reject`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!res.ok) {
+      throw new Error(
+        `Failed to update menu item status. Server returned ${res.status} ${res.statusText}.`,
+      );
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("Update menu item status failed:", error);
+
+    // আসল error message/cause যেন caller পর্যন্ত পৌঁছায়
+    throw new Error("Could not update menu item status.", { cause: error });
+}
+}
+
+export const updateInactiveStatus = async(id:string) =>{
+  if (!id) {
+    throw new Error("Menu item id is required.");
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/menuItems/${id}/inactive`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!res.ok) {
+      throw new Error(
+        `Failed to update menu item status. Server returned ${res.status} ${res.statusText}.`,
+      );
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("Update menu item status failed:", error);
+
+    // আসল error message/cause যেন caller পর্যন্ত পৌঁছায়
+    throw new Error("Could not update menu item status.", { cause: error });
+  }
+}
+export const updateActiveStatus = async(id:string) =>{
+  if (!id) {
+    throw new Error("Menu item id is required.");
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/menuItems/${id}/active`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!res.ok) {
+      throw new Error(
+        `Failed to update menu item status. Server returned ${res.status} ${res.statusText}.`,
+      );
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("Update menu item status failed:", error);
+
+    // আসল error message/cause যেন caller পর্যন্ত পৌঁছায়
+    throw new Error("Could not update menu item status.", { cause: error });
+  }
+}

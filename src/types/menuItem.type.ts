@@ -3,8 +3,6 @@ export type MenuItemStatus =
   | "pending"
   | "approved"
   | "rejected"
-  | "active"
-  | "inactive";
 
 export interface IMenuItem {
   _id?: string;
@@ -20,4 +18,5 @@ export interface IMenuItem {
   userId: string | undefined;
   /** Set by the backend on create ("pending") and by admin review. */
   status?: MenuItemStatus;
+  active?: boolean
 }
