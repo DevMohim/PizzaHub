@@ -1,8 +1,8 @@
-import { Check, Eye, EyeOff, Info, MapPin, Pizza, Store, Trash2, X } from "lucide-react";
+import { Info, MapPin, Pizza, Store } from "lucide-react";
 import MenuItemsFilters from "@/components/admin/MenuItemsFilters";
+import MenuItemRowActions from "@/components/admin/MenuItemRowActions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { getCategoryLabel } from "@/config/menuCategories";
 import { getMenuItemStatusStyle } from "@/config/menuItemStatus";
-import { IMenuItem, MenuItemStatus } from "@/types/menuItem.type";
+import { IMenuItem } from "@/types/menuItem.type";
 import { cn } from "cn";
 import { getMenuItems } from "@/lib/api/menuItems";
 
@@ -32,81 +32,6 @@ const thumbTints = [
   "bg-secondary/10 text-secondary",
   "bg-success/10 text-success",
 ];
-
-const RowActions = ({ item }: { item: IMenuItem }) => {
-  const status: MenuItemStatus = item.status ?? "pending";
-  const name = item.itemName;
-
-  const approve =
-    status === "pending" || status === "rejected" ? (
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        aria-label={`Approve ${name}`}
-        className="border-success/40 text-success hover:bg-success/10 hover:text-success"
-      >
-        <Check aria-hidden="true" />
-        Approve
-      </Button>
-    ) : null;
-
-  const reject =
-    status === "pending" ? (
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        aria-label={`Reject ${name}`}
-        className="border-warning/40 text-warning hover:bg-warning/10 hover:text-warning"
-      >
-        <X aria-hidden="true" />
-        Reject
-      </Button>
-    ) : null;
-
-  const toggleStatus =
-    status === "approved" || status === "active" ? (
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        aria-label={`Make ${name} inactive`}
-        className="text-muted-foreground hover:text-foreground"
-      >
-        <EyeOff aria-hidden="true" />
-        Make Inactive
-      </Button>
-    ) : status === "inactive" ? (
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        aria-label={`Make ${name} active`}
-        className="border-success/40 text-success hover:bg-success/10 hover:text-success"
-      >
-        <Eye aria-hidden="true" />
-        Make Active
-      </Button>
-    ) : null;
-
-  return (
-    <div className="flex items-center justify-end gap-1.5">
-      {approve}
-      {reject}
-      {toggleStatus}
-      <Button
-        type="button"
-        variant="destructive"
-        size="sm"
-        aria-label={`Delete ${name}`}
-      >
-        <Trash2 aria-hidden="true" />
-        Delete
-      </Button>
-    </div>
-  );
-};
 
 /* ---------- Page ---------- */
 
@@ -269,7 +194,7 @@ const ManageMenuItemsPage = async() => {
 
                     {/* Right — actions */}
                     <TableCell className="py-3 pr-4 align-middle">
-                      <RowActions item={item} />
+                      <MenuItemRowActions item={item} />
                     </TableCell>
                   </TableRow>
                 );
