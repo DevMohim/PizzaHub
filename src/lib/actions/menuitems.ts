@@ -29,6 +29,36 @@ export const createMenuItem = async (data :IMenuItem) => {
   }
 };
 
+export const updateMenuItem = async(id:string,  data:IMenuItem) => {
+  if (!id) {
+    throw new Error("Menu item id is required.");
+  }
+  if(!data){
+    throw new Error("Update data is required.");
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/menuItems/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    if (!res.ok) {
+      throw new Error(
+        `Failed to update menu item info. Server returned ${res.status} ${res.statusText}.`,
+      );
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("Update menu item info:", error);
+
+    // আসল error message/cause যেন caller পর্যন্ত পৌঁছায়
+    throw new Error("Could not update menu item info.", { cause: error });
+  }
+}
+
 export const deleteMenuItem = async ( id:string) => {
 if (!id) {
   throw new Error("Menu item id is required.");

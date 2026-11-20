@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "react-hot-toast";
 import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import { CartProvider } from "@/lib/cart-context";
 import "./globals.css";
 
@@ -34,7 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <CartProvider>
           <Navbar />
           <div className="flex-1">{children}</div>
-          <Footer />
+          
           <Toaster position="bottom-right" />
         </CartProvider>
       </ThemeProvider>
