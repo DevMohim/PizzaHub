@@ -45,14 +45,17 @@ const getActiveHref = (
 const roleMeta: Record<UserRole, { label: string; icon: typeof User }> = {
   customer: { label: "Customer", icon: User },
   vendor: { label: "Vendor", icon: Store },
-  admin: { label: "Admin", icon: ShieldCheck },
 };
 
 const DashboardSidebar = () => {
   const { data: session, isPending } = useSession();
   const pathname = usePathname();
   const user: TSessionUser | undefined = session?.user
-    ? { ...session.user, image: session.user.image ?? "" }
+    ? {
+        ...session.user,
+        image: session.user.image ?? "",
+        role: session.user.role === "vendor" ? "vendor" : "customer",
+      }
     : undefined;
 
   const role: UserRole = user && user.role in roleMeta ? user.role : "customer";
@@ -103,9 +106,7 @@ const DashboardSidebar = () => {
                 className={cn(
                   "mt-1 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5",
                   "text-[11px] font-semibold uppercase tracking-wide",
-                  role === "admin"
-                    ? "bg-primary/10 text-primary"
-                    : "bg-sidebar-primary text-sidebar-primary-foreground",
+                  "bg-sidebar-primary text-sidebar-primary-foreground",
                 )}
               >
                 <RoleIcon className="size-3" aria-hidden="true" />
