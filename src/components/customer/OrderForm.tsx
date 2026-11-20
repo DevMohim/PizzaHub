@@ -28,6 +28,9 @@ const OrderForm = ({ item }: OrderFormType) => {
   const orderData = {
     itemId: item._id as string,
     itemName: item.itemName,
+    itemImage: item.imageUrl,
+    itemCategory: item.category ?? "",
+    vendorName: item.userEmail ?? "",
     price: Number(item.price ?? 0),
     quantity,
     totalAmount,

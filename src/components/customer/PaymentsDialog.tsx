@@ -13,6 +13,7 @@ import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { createOrder } from "@/lib/actions/orders";
+import { IOrder } from "@/types/order.type";
 
 export interface OrderFormErrors {
   deliveryDate?: string;
@@ -20,18 +21,7 @@ export interface OrderFormErrors {
 }
 
 interface DialogProps {
-  orderData: {
-    itemId: string;
-    itemName: string;
-    price: number;
-    quantity: number;
-    totalAmount: number;
-    deliveryDate: string;
-    deliveryAddress: string;
-    message: string;
-    userName: string;
-    userEmail: string;
-  };
+  orderData: IOrder;
   onValidationFail: (errors: OrderFormErrors) => void;
 }
 
@@ -81,7 +71,7 @@ const PaymentsDialog = ({ orderData, onValidationFail }: DialogProps) => {
     await createOrder(orderData);
     toast.success("Payment Successful, your order is confirmed");
     setOpen(false);
-    router.push(`/dashboard/customer/my-orders`);
+    router.push(`/dashboard/customer/orders`);
   };
 
   return (
