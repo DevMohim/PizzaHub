@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import { buttonVariants } from "@/components/ui/button";
 import { useCart } from "@/lib/cart-context";
 import { cn } from "cn";
+import { StripEmptyObjects } from "better-auth";
 
 interface AddToBagButtonProps {
   item: {
@@ -16,6 +17,22 @@ interface AddToBagButtonProps {
     imageUrl: string;
     location: string;
   };
+  user:
+    | StripEmptyObjects<
+        {
+          id: string;
+          createdAt: Date;
+          updatedAt: Date;
+          email: string;
+          emailVerified: boolean;
+          name: string;
+          image?: string | null | undefined;
+        } & {
+          role: string | null | undefined;
+          status: string | null | undefined;
+        } & {}
+      >
+    | undefined;
 }
 
 /**
@@ -24,16 +41,18 @@ interface AddToBagButtonProps {
  * into the shared cart and confirms with a toast — the navbar badge then
  * updates immediately.
  */
-const AddToBagButton = ({ item }: AddToBagButtonProps) => {
+const AddToBagButton = ({ item, user }: AddToBagButtonProps) => {
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
 
   const handleAdd = () => {
-    addItem(item, quantity);
-    toast.success(
-      `${quantity} × ${item.itemName} added to your bag`,
-    );
-    setQuantity(1);
+    if (user?.role === "vendor" || user?.role === "admin") {
+      toast.error(`${user.role.toUpperCase()} isn't able to save items`);
+    } else {
+      addItem(item, quantity);
+      toast.success(`${quantity} × ${item.itemName} added to your bag`);
+      setQuantity(1);
+    }
   };
 
   return (

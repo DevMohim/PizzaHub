@@ -55,19 +55,6 @@ const ManageMenuItemsPage = async() => {
         </p>
       </div>
 
-      {/* Visibility rule */}
-      {/* <Alert className="mb-5 border-primary/30 bg-primary/5">
-        <Info aria-hidden="true" />
-        <AlertTitle className="font-heading font-semibold">
-          Public visibility
-        </AlertTitle>
-        <AlertDescription className="text-muted-foreground">
-          Only <span className="text-foreground font-medium">approved</span> and{" "}
-          <span className="text-foreground font-medium">active</span> items
-          appear on the public Browse Menu. Pending, rejected, and inactive
-          items stay hidden from customers.
-        </AlertDescription>
-      </Alert> */}
 
       {/* Filters */}
       <div className="mb-5">

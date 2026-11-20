@@ -1,6 +1,6 @@
 "use client";
 
-import { Store, User } from "lucide-react";
+import { ShieldCheck, Store, User } from "lucide-react";
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -20,12 +20,7 @@ import { roleBasedMenuItems } from "@/config/roleBasedMenuItems";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-/**
- * Finds the menu entry that should look active for the current pathname.
- * - Exact matches win (e.g. `/dashboard/vendor` → Overview only).
- * - Otherwise the deepest parent route is highlighted, so a nested page
- *   like `/dashboard/vendor/menu-items/new` still lights up "My Menu Items".
- */
+
 const getActiveHref = (
   pathname: string,
   items: { href: string }[],
@@ -45,7 +40,10 @@ const getActiveHref = (
 const roleMeta: Record<UserRole, { label: string; icon: typeof User }> = {
   customer: { label: "Customer", icon: User },
   vendor: { label: "Vendor", icon: Store },
+  admin: { label: "Admin", icon: ShieldCheck },
 };
+const isUserRole = (value: unknown): value is UserRole =>
+  typeof value === "string" && value in roleMeta;
 
 const DashboardSidebar = () => {
   const { data: session, isPending } = useSession();
@@ -54,14 +52,14 @@ const DashboardSidebar = () => {
     ? {
         ...session.user,
         image: session.user.image ?? "",
-        role: session.user.role === "vendor" ? "vendor" : "customer",
+        role: isUserRole(session.user.role) ? session.user.role : "customer",
       }
     : undefined;
 
-  const role: UserRole = user && user.role in roleMeta ? user.role : "customer";
+  const role: UserRole = user?.role ?? "customer";
   const RoleIcon = roleMeta[role].icon;
 
-  const items = roleBasedMenuItems
+  const items = roleBasedMenuItems;
   const activeHref = getActiveHref(pathname, items[role]);
 
   return (

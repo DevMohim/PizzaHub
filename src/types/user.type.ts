@@ -1,6 +1,6 @@
 
 
-export type UserRole = "vendor" | "customer" ;
+export type UserRole = "vendor" | "customer" | "admin" ;
 
 export type TSessionUser = {
   createdAt: Date;
