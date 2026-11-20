@@ -29,3 +29,27 @@ export const createOrder = async(data:IOrder) => {
    }
 
 }
+
+export const cancelOrder = async(id:string) => {
+  if (!id) {
+    throw new Error("Menu item id is required.");
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/orders/${id}`, {
+      method: "DELETE",});
+
+    if (!res.ok) {
+      throw new Error(
+        `Failed to delete menu item. Server returned ${res.status} ${res.statusText}.`,
+      );
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("Delete menu item failed:", error);
+
+    // আসল error message/cause যেন caller পর্যন্ত পৌঁছায়
+    throw new Error("Could not delete menu item.", { cause: error });
+  }
+}

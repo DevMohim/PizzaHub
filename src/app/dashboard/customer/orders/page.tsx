@@ -18,6 +18,7 @@ import { IOrder, OrderStatus } from "@/types/order.type";
 import { getOrdersByEmail } from "@/lib/api/orders";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import CancelOrderBtn from "@/components/customer/CancelOrderBtn";
 
 
 const statusStyles: Record<OrderStatus, { label: string; className: string }> =
@@ -107,8 +108,6 @@ const OrderCard =  ({ order }: { order: IOrder }) => {
           </div>
         </div>
 
-        
-
         {/* Footer row — price + actions */}
         <div className="mt-auto flex flex-wrap items-end justify-between gap-3 border-t border-border pt-3">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
@@ -123,22 +122,13 @@ const OrderCard =  ({ order }: { order: IOrder }) => {
             </span>
             <span className="text-muted-foreground flex items-center gap-1 text-xs">
               <Clock className="size-3.5" aria-hidden="true" />
-              Requested {order.deliveryDate}
+              Requested {order.requestedAt?.$date?.slice(0, 10) ?? ""}
             </span>
           </div>
 
           {/* Cancel is only available for pending orders */}
           {order.status === "pending" && (
-            <button
-              type="button"
-              className={cn(
-                buttonVariants({ variant: "destructive", size: "sm" }),
-                "cursor-pointer",
-              )}
-            >
-              <XCircle aria-hidden="true" />
-              Cancel order
-            </button>
+            <CancelOrderBtn order={order}/>
           )}
         </div>
       </div>
@@ -186,6 +176,8 @@ const MyOrdersPage = async() => {
       tone: "text-destructive bg-destructive/10",
     },
   ] as const;
+
+
 
   return (
     <div className="w-full px-4 py-8 md:px-6">
