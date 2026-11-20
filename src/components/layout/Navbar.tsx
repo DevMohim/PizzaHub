@@ -10,6 +10,8 @@ import MyLogo from '@/assets/pizza-logo.png'
 import Image from "next/image";
 import { useSession } from "@/lib/auth-client";
 import ShowMenuItems from "../Navbar/ShowMenuItems";
+import CartDrawer from "../Navbar/CartDrawer";
+import ThemeToggle from "../Navbar/ThemeToggle";
 import { TSessionUser } from "@/types/user.type";
 
 const navLinks = [
@@ -62,8 +64,12 @@ function NavLink({ label, href }: { label: string; href: string }) {
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const {data : session} = useSession()
-  const user: TSessionUser | undefined = session?.user
-    ? { ...session.user, image: session.user.image ?? "" }
+  const user: TSessionUser | undefined = session?.user?.role
+    ? {
+        ...session.user,
+        image: session.user.image ?? "",
+        role: session.user.role as TSessionUser["role"],
+      }
     : undefined
 
     const authenticateNavLinks = [
@@ -98,8 +104,12 @@ const Navbar = () => {
           )}
         </nav>
 
-        {/* Right: Auth buttons */}
+        {/* Right: Theme, bag + Auth buttons */}
         <div className="flex shrink-0 items-center gap-2">
+          <ThemeToggle />
+          {
+            user?.role === 'customer' ? <><CartDrawer /></>: ''
+          }
           {user ? (
             <>
               <ShowMenuItems user={user} />

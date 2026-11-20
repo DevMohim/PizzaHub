@@ -139,6 +139,9 @@
   --sidebar-accent-foreground: #FFF9F3;
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: #EF5350;
+
+  /* Warm gradients tuned for dark surfaces (headers, hero panels) */
+  --gradient-warm: linear-gradient(120deg, #2A2F36 0%, #343A42 100%);
 }
 
 /* ---------- Base ---------- */
@@ -424,5 +427,35 @@
   .banner-cta,
   .banner-cta-icon {
     transition: none;
+  }
+}
+
+/* ---------- "Why choose PizzaHub" scroll reveal ----------
+   Progressive enhancement: only browsers that support scroll-linked
+   timelines animate; everything else (and reduced-motion users) simply
+   renders the section as-is. Each card staggers via an inline
+   `animation-range` set in the component. */
+@supports (animation-timeline: view()) {
+  .reveal-on-scroll {
+    animation: reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 65%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-on-scroll {
+    animation: none;
+  }
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

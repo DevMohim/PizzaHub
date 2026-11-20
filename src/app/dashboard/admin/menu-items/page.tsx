@@ -206,16 +206,16 @@ const ManageMenuItemsPage = async() => {
         </>
       ) : (
         <>
-          <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-3xl">
+          <div className="border-border bg-muted/40 flex min-h-80 flex-col items-center justify-center rounded-2xl border border-dashed px-6 text-center">
+            <div className="bg-accent mb-4 flex h-16 w-16 items-center justify-center rounded-full text-3xl">
               🍽️
             </div>
 
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-foreground">
               No menu items found
             </h2>
 
-            <p className="mt-2 max-w-sm text-sm text-gray-600">
+            <p className="text-muted-foreground mt-2 max-w-sm text-sm">
               There are no menu items to show right now. Try changing your
               filters or check back later.
             </p>

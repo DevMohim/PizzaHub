@@ -27,6 +27,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { getCategoryLabel } from "@/config/menuCategories";
+import AddToBagButton from "@/components/browse/AddToBagButton";
 import { cn } from "cn";
 
 interface ItemDetailsPageProps {
@@ -279,6 +280,22 @@ const ItemDetailsPage = async ({ params }: ItemDetailsPageProps) => {
                 >
                   Order Now
                 </button>
+
+                {/* Save for later — goes to the navbar bag */}
+                <div>
+                  <p className="text-muted-foreground mb-1.5 text-xs">
+                    Not ready to order yet? Keep it in your bag.
+                  </p>
+                  <AddToBagButton
+                    item={{
+                      id: item._id ?? id,
+                      itemName: item.itemName,
+                      price: Number(item.price ?? 0),
+                      imageUrl: item.imageUrl ?? "",
+                      location: item.location,
+                    }}
+                  />
+                </div>
 
                 <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
                   <ShieldCheck
