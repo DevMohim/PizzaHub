@@ -9,8 +9,7 @@ import {
   ShoppingBag,
   Store,
 } from "lucide-react";
-import { getMenuItems } from "@/lib/api/menuItems";
-import { IMenuItem } from "@/types/menuItem.type";
+import { getMenuItemsById } from "@/lib/api/menuItems";
 import ItemGallery from "@/components/browse/ItemGallery";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -37,19 +36,15 @@ interface ItemDetailsPageProps {
 const ItemDetailsPage = async ({ params }: ItemDetailsPageProps) => {
   const { id } = await params;
 
-  /* Load the public menu and locate this item — handles invalid IDs
-     and missing records explicitly below. */
-  let item: IMenuItem | undefined;
-  let errorMessage: string | null = null;
+ let item: Awaited<ReturnType<typeof getMenuItemsById>> | null = null;
+ let errorMessage: string | null = null;
 
-  try {
-    const data = await getMenuItems();
-    const items: IMenuItem[] = Array.isArray(data) ? data : [];
-    item = items.find((entry) => entry._id === id);
-  } catch {
-    errorMessage =
-      "We couldn't load this item right now. Please refresh and try again.";
-  }
+ try {
+   item = await getMenuItemsById(id);
+ } catch {
+   errorMessage =
+     "We couldn't load this item right now. Please refresh and try again.";
+ }
 
   /* Error state */
   if (errorMessage) {

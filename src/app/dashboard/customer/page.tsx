@@ -3,7 +3,7 @@
 const CustomerOverviewPage = () => {
    return (
       <div>
-         customer dashboard
+         customer overview dashboard
       </div>
    );
 };

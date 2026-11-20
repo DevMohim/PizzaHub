@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -17,9 +17,11 @@
   --color-danger: #DC2626;
 
   --font-inter: "Inter", sans-serif;
-  --font-jakarta: "Plus Jakarta Sans", sans-serif;
+  /* Display font: Georgia (web-safe serif) for headings, item names and
+     the logo wordmark. Inter stays the body/UI font. */
+  --font-jakarta: Georgia, "Times New Roman", serif;
   --font-sans: "Inter", sans-serif;
-  --font-heading: "Plus Jakarta Sans", sans-serif;
+  --font-heading: Georgia, "Times New Roman", serif;
 }
 
 /* ---------- shadcn token mapping ---------- */
@@ -169,7 +171,7 @@
     font: inherit;
   }
 
-  /* Buttons use Plus Jakarta Sans */
+  /* Buttons use the heading font */
   button,
   .btn-primary,
   .btn-dark {
