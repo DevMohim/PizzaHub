@@ -8,4 +8,4 @@ export const authClient = createAuthClient({
 });
 
 // Convenience exports for direct use (e.g. signUp.email, signIn.email)
-export const { signUp, signIn, signOut, useSession } = authClient;
+export const { signUp, signIn, signOut, useSession , updateUser} = authClient;
