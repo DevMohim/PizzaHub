@@ -1,6 +1,6 @@
 "use client";
 
-import { ShieldCheck, Store, User } from "lucide-react";
+import { Store, User } from "lucide-react";
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
