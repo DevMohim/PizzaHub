@@ -21,7 +21,7 @@ export const getUserStatusStyle = (isBlocked?: boolean) =>
 
 /** Badge style per role — Admin, Vendor, Customer. */
 export const userRoleStyles: Record<
-  UserRole,
+  UserRole | "admin",
   { label: string; className: string }
 > = {
   admin: {
