@@ -1,9 +1,7 @@
-export type OrderStatus = "pending" | "accepted" | "rejected" | "cancelled";
+export type OrderStatus = "pending" | "approved" | "rejected" | "cancelled";
 
 export interface IOrder {
-  _id?: {
-    $oid: string;
-  };
+  _id?: string
   itemId: string;
   itemName: string;
   itemImage: string;

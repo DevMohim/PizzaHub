@@ -54,7 +54,7 @@ export const cancelOrder = async(id:string) => {
   }
 }
 
-export const updateApproveStatus = async (id:string) => {
+export const updateApproveOrder = async (id:string) => {
   if (!id) {
     throw new Error("Menu item id is required.");
   }
@@ -80,7 +80,7 @@ export const updateApproveStatus = async (id:string) => {
 }
 }
 
-export const updateRejectStatus = async (id:string) => {
+export const updateRejectOrder = async (id:string) => {
   if (!id) {
     throw new Error("Menu item id is required.");
   }

@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -24,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import StatusCapsule from "@/components/shared/StatusCapsule";
 import { cn } from "cn";
+import ActionBtns from "@/components/vendor/ActionBtns";
 
 /* -------------------------------------------------------------------------- */
 /*                          Status config (shared)                            */
@@ -39,8 +39,8 @@ const statusStyles: Record<OrderStatus, { label: string; className: string }> =
       label: "Pending",
       className: "bg-warning/10 text-warning ring-warning/30",
     },
-    accepted: {
-      label: "Accepted",
+    approved: {
+      label: "Approved",
       className: "bg-success/10 text-success ring-success/30",
     },
     rejected: {
@@ -57,26 +57,6 @@ const statusStyles: Record<OrderStatus, { label: string; className: string }> =
 /*                          Action buttons (UI only)                          */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Accept / Reject buttons — placeholders only, no API wired up yet.
- * When you implement functionality, gate them on `order.status === "pending"`.
- */
-const OrderActions = () => (
-  <div className="flex items-center gap-2">
-    <Button type="button" variant="destructive" size="sm" className="cursor-pointer">
-      <XCircle aria-hidden="true" />
-      Reject
-    </Button>
-    <Button
-      type="button"
-      size="sm"
-      className="cursor-pointer bg-(image:--gradient-primary) text-white hover:opacity-90"
-    >
-      <CookingPot aria-hidden="true" />
-      Accept
-    </Button>
-  </div>
-);
 
 /* -------------------------------------------------------------------------- */
 /*                              Page                                          */
@@ -93,7 +73,7 @@ const OrderPage = async () => {
   // 3) Count orders per status for the stat cards.
   const total = myOrders.length;
   const pending = myOrders.filter((o) => o.status === "pending").length;
-  const accepted = myOrders.filter((o) => o.status === "accepted").length;
+  const approved = myOrders.filter((o) => o.status === "approved").length;
   const rejected = myOrders.filter((o) => o.status === "rejected").length;
 
   // 4) Stat cards data.
@@ -111,8 +91,8 @@ const OrderPage = async () => {
       tone: "text-warning bg-warning/10",
     },
     {
-      label: "Accepted",
-      value: accepted,
+      label: "Approved",
+      value: approved,
       icon: CookingPot,
       tone: "text-success bg-success/10",
     },
@@ -184,7 +164,7 @@ const OrderPage = async () => {
               Orders for your items
             </h2>
             <p className="text-muted-foreground text-sm">
-              {total} orders · {pending} pending · {accepted} accepted ·{" "}
+              {total} orders · {pending} pending · {approved} approved ·{" "}
               {rejected} rejected
             </p>
           </div>
@@ -222,7 +202,7 @@ const OrderPage = async () => {
                   .toUpperCase();
 
                 return (
-                  <TableRow key={order._id?.$oid ?? index}>
+                  <TableRow key={order._id ?? index}>
                     {/* Customer */}
                     <TableCell className="py-3 pl-4 align-middle whitespace-normal">
                       <div className="flex min-w-0 items-center gap-2.5">
@@ -305,7 +285,7 @@ const OrderPage = async () => {
                     {/* Actions */}
                     <TableCell className="py-3 pr-4 align-middle">
                       <div className="flex justify-end">
-                        <OrderActions />
+                        <ActionBtns order={order} />
                       </div>
                     </TableCell>
                   </TableRow>
@@ -320,7 +300,7 @@ const OrderPage = async () => {
               const status = statusStyles[order.status ?? "pending"];
               return (
                 <div
-                  key={order._id?.$oid ?? index}
+                  key={order._id ?? index}
                   className="rounded-xl border border-border p-3"
                 >
                   {/* Customer + status */}
@@ -386,7 +366,7 @@ const OrderPage = async () => {
                         {order.deliveryAddress}
                       </p>
                     </div>
-                    <OrderActions />
+                    <ActionBtns order={order} />
                   </div>
                 </div>
               );
