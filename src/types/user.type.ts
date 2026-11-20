@@ -20,7 +20,7 @@ export interface IUser{
   image: string;
   createdAt: string; // ISO date string from JSON
   updatedAt: string; // ISO date string from JSON
-  role: "vendor" | "admin";
+  role: "vendor" | "admin" | "customer";
   status: string;
   isBlocked?: boolean
 };
