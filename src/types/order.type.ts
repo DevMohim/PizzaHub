@@ -8,7 +8,7 @@ export interface IOrder {
   itemName: string;
   itemImage: string;
   itemCategory: string;
-  vendorName: string;
+  vendorEmail: string;
   price: number;
   quantity: number;
   totalAmount: number;

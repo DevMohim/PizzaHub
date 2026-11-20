@@ -22,3 +22,27 @@ export const getOrdersByEmail = async(email:string) => {
      throw new Error("Could not get orders.", { cause: error });
    }
 }
+
+
+export const getOrdersByVendorEmail = async(email:string) => {
+   if (!email) {
+     throw new Error("Vendor email is required.");
+   }
+
+   try {
+     const res = await fetch(`${BASE_URL}/orders/${email}`);
+
+     if (!res.ok) {
+       throw new Error(
+         `Failed to get orders. Server returned ${res.status} ${res.statusText}.`,
+       );
+     }
+
+     return await res.json();
+   } catch (error) {
+     console.error("Get orders failed:", error);
+
+     // আসল error message/cause যেন caller পর্যন্ত পৌঁছায়
+     throw new Error("Could not get orders.", { cause: error });
+   }
+}

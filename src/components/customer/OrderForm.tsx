@@ -30,7 +30,7 @@ const OrderForm = ({ item }: OrderFormType) => {
     itemName: item.itemName,
     itemImage: item.imageUrl,
     itemCategory: item.category ?? "",
-    vendorName: item.userEmail ?? "",
+    vendorEmail: item.userEmail ?? "",
     price: Number(item.price ?? 0),
     quantity,
     totalAmount,
