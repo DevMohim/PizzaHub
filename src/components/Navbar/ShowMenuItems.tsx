@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   LogOut,
-  Settings,
   User,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
