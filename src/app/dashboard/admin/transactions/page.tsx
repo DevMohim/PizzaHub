@@ -458,7 +458,7 @@ const TransactionPage = async () => {
               </div>
 
               <CardContent className="px-0">
-                <Table className="min-w-[64rem]">
+                <Table className="min-w-5xl">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="pl-4 text-[11px] tracking-wider uppercase">

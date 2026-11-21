@@ -1,35 +1,26 @@
-import { AlertCircle, Pizza, SearchX } from "lucide-react";
+import { AlertCircle, Pizza } from "lucide-react";
+import MenuBrowser from "@/components/browse/MenuBrowser";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getMenuItems } from "@/lib/api/menuItems";
 import { IMenuItem } from "@/types/menuItem.type";
-import MenuCard from "@/components/browse/MenuCard";
-import MenuFilters from "@/components/browse/MenuFilters";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
 
 const BrowseMenuItemsPage = async () => {
   /* Fetch the public menu — only approved & active items are shown. */
-  let menuItems: IMenuItem[] = [];
+  let initialItems: IMenuItem[] = [];
   let errorMessage: string | null = null;
 
   try {
-    const data = await getMenuItems();
-    menuItems = Array.isArray(data) ? (data as IMenuItem[]) : [];
+    const data = await getMenuItems({ status: "approved", active: "true" });
+    initialItems = Array.isArray(data) ? (data as IMenuItem[]) : [];
   } catch {
     errorMessage =
       "We couldn't load the menu right now. Please refresh and try again.";
   }
 
-  const visibleItems = menuItems.filter((item) => item.status === "approved" && item.active === true);
   /* Unique locations for the location filter. */
   const locations = Array.from(
     new Set(
-      visibleItems
+      initialItems
         .map((item) => item.location?.trim())
         .filter((location): location is string => Boolean(location)),
     ),
@@ -56,56 +47,14 @@ const BrowseMenuItemsPage = async () => {
 
       {/* Content */}
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
-        {/* Error state */}
-        {errorMessage && (
-          <Alert variant="destructive" className="mb-6">
+        {errorMessage ? (
+          <Alert variant="destructive">
             <AlertCircle />
             <AlertTitle>Couldn&apos;t load the menu</AlertTitle>
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
-        )}
-
-        {/* Filters — search by name, filter by category & location */}
-        {!errorMessage && (
-          <div className="mb-6">
-            <MenuFilters locations={locations} />
-          </div>
-        )}
-
-        {/* Results count */}
-        {!errorMessage && visibleItems.length > 0 && (
-          <p className="text-muted-foreground mb-4 text-sm">
-            Showing{" "}
-            <span className="text-foreground font-medium">
-              {visibleItems.length}
-            </span>{" "}
-            {visibleItems.length === 1 ? "item" : "items"}
-          </p>
-        )}
-
-        {/* Empty state */}
-        {!errorMessage && visibleItems.length === 0 && (
-          <Empty className="border border-border bg-card">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <SearchX />
-              </EmptyMedia>
-              <EmptyTitle>No items found</EmptyTitle>
-              <EmptyDescription>
-                Nothing matches the current filters yet — try a different search
-                or check back soon, new pizzas are added daily.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        )}
-
-        {/* Responsive card grid */}
-        {!errorMessage && visibleItems.length > 0 && (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-            {visibleItems.map((item, index) => (
-              <MenuCard key={item._id ?? index} item={item} />
-            ))}
-          </div>
+        ) : (
+          <MenuBrowser initialItems={initialItems} locations={locations} />
         )}
       </div>
     </div>
