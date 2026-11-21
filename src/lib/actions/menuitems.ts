@@ -2,7 +2,7 @@ import { IMenuItem } from "@/types/menuItem.type";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export const createMenuItem = async (data :IMenuItem) => {
+export const createMenuItem = async (data :IMenuItem ) => {
   if (!data) {
     throw new Error("Menu item data is required.");
   }
@@ -10,7 +10,9 @@ export const createMenuItem = async (data :IMenuItem) => {
   try {
     const res = await fetch(`${BASE_URL}/menuItems`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" 
+        // Authorization: `Bearer ${token}`
+       },
       body: JSON.stringify(data),
     });
 

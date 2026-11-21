@@ -50,6 +50,7 @@ import {
 } from "@/types/transaction.type";
 import { IUser } from "@/types/user.type";
 import { cn } from "cn";
+import { getTokenFromServer } from "@/lib/getTokenFromServer";
 
 /* ------------------------------------------------------------------ */
 /*  Formatting helpers                                                 */
@@ -219,10 +220,11 @@ const TransactionPage = async () => {
   let loadError: string | null = null;
 
   try {
+    const token = await getTokenFromServer()
     const [transactionData, userData] = await Promise.all([
-      getAllTransaction() as Promise<ITransaction[]>,
+      getAllTransaction(token) as Promise<ITransaction[]>,
       // Vendor details are only used to enrich the table — never block it.
-      getAllUser().catch(() => [] as IUser[]),
+      getAllUser(token).catch(() => [] as IUser[]),
     ]);
 
     transactions = Array.isArray(transactionData) ? transactionData : [];

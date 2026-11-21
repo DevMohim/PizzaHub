@@ -35,7 +35,7 @@ type FieldErrors = Partial<
   >
 >;
 
-const NewMenuItemForm = ({ menuCount ,isPremium}: { menuCount :number , isPremium : boolean | undefined}) => {
+const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremium : boolean | undefined }) => {
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   const [itemName, setItemName] = useState("");

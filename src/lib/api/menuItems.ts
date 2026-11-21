@@ -32,7 +32,7 @@ const buildQueryString = (query: MenuItemsQuery) => {
   return params.toString();
 };
 
-const fetchJson = async (url: string) => {
+const fetchJson = async (url: string ) => {
   const res = await fetch(url);
 
   if (!res.ok) {
@@ -42,23 +42,23 @@ const fetchJson = async (url: string) => {
   return res.json();
 };
 
-export const getMenuItems = async (query: MenuItemsQuery = {}) => {
+export const getMenuItems = async (query: MenuItemsQuery = {} ) => {
   const queryString = buildQueryString(query);
   const url = `${getBaseUrl()}/menuItems${queryString ? `?${queryString}` : ""}`;
 
   try {
-    return await fetchJson(url);
+    return await fetchJson(url );
   } catch (error) {
     console.error("Get menu items failed:", error);
     throw error;
   }
 };
 
-export const getMenuItemsByEmail = async (email: string) => {
+export const getMenuItemsByEmail = async (email: string ) => {
   if (!email) {
     throw new Error("User email is required.");
   }
-  return getMenuItems({ email });
+  return getMenuItems({ email});
 };
 
 export const getMenuItemsById = async (id: string) => {

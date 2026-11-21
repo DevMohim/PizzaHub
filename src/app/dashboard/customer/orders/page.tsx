@@ -19,6 +19,7 @@ import { getOrdersByEmail } from "@/lib/api/orders";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import CancelOrderBtn from "@/components/customer/CancelOrderBtn";
+import { getTokenFromServer } from "@/lib/getTokenFromServer";
 
 
 const statusStyles: Record<OrderStatus, { label: string; className: string }> =
@@ -143,7 +144,8 @@ const OrderCard =  ({ order }: { order: IOrder }) => {
 const MyOrdersPage = async() => {
   const session = await auth.api.getSession({ headers: await headers() });
   const user = session?.user;
-  const orders: IOrder[] = await getOrdersByEmail(user?.email as string);
+  // const token = await getTokenFromServer()
+  const orders: IOrder[] = await getOrdersByEmail(user?.email as string ,);
   const total = orders.length;
   const pending = orders.filter((o) => o.status === "pending").length;
   const accepted = orders.filter((o) => o.status === "accepted").length;

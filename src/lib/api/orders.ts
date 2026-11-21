@@ -1,12 +1,14 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export const getOrdersByEmail = async(email:string | undefined) => {
+export const getOrdersByEmail = async(email:string | undefined ) => {
    if (!email) {
      throw new Error("User email is required.");
    }
 
    try {
-     const res = await fetch(`${BASE_URL}/orders?email=${email}`);
+     const res = await fetch(`${BASE_URL}/orders?email=${email}` , {
+      // headers:{Authorization: `Bearer ${token}`}
+     });
 
      if (!res.ok) {
        throw new Error(

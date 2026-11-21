@@ -32,7 +32,7 @@ const NewMenuItemPage = async () => {
         </p>
       </div>
 
-      <NewMenuItemForm menuCount = {menuCount} isPremium={user.isPremium}/>
+      <NewMenuItemForm menuCount = {menuCount} isPremium={user.isPremium} />
     </div>
   );
 };

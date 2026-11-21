@@ -30,6 +30,7 @@ import {
 import { getUserStatusStyle, userRoleStyles } from "@/config/userDisplay";
 import { IUser, UserRole } from "@/types/user.type";
 import { getAllUser } from "@/lib/api/users";
+import { getTokenFromServer } from "@/lib/getTokenFromServer";
 
 
 /** First letters of a name for the avatar fallback. */
@@ -53,7 +54,8 @@ const formatDate = (date: string | { $date: string }) =>
 /* ---------- Page ---------- */
 
 const ManageUsersPage = async() => {
-   const users : IUser[] = await getAllUser()
+  const token =await getTokenFromServer()
+   const users : IUser[] = await getAllUser(token)
   const blockedCount = users.filter((user) => user.isBlocked).length;
 
 

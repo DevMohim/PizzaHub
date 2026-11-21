@@ -1,8 +1,12 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export const getAllUser = async () => {
+export const getAllUser = async (token:string) => {
   try {
-    const res = await fetch(`${BASE_URL}/users`);
+    const res = await fetch(`${BASE_URL}/users` ,{
+      headers:{
+        Authorization: `Bearer ${token}`
+      }
+    });
 
     if (!res.ok) {
       throw new Error(
