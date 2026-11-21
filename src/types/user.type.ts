@@ -25,4 +25,9 @@ export interface IUser{
   status: string;
   isBlocked?: boolean
   isPremium?:boolean
+  /** Vendor business name, when provided during profile setup. */
+  businessName?: string;
+  plan?: string;
+  planStatus?: string;
+  premiumSince?: string;
 };
