@@ -33,13 +33,8 @@ const menuItems = (role: TSessionUser["role"]) => [
   },
   {
     name: "Profile",
-    url: `/dashboard/${role}/profile`,
+    url: `/dashboard/${role}/settings`,
     icon: User,
-  },
-  {
-   name : "Settings",
-   url: "/settings",
-   icon: Settings
   }
 ];
 

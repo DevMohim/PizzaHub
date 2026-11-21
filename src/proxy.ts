@@ -15,5 +15,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/browse-menu/:id"], // Specify the routes the middleware applies to
+  matcher: ["/browse-menu/:id", "/dashboard", "/dashboard/:role/settings" ,'/payment/success' ,'/payment/cancel'], // Specify the routes the middleware applies to
 };

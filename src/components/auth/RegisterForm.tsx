@@ -10,6 +10,12 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FieldLabel } from "@/components/ui/field";
 import { signUp } from "@/lib/auth-client";
+import {
+  validateAll,
+  validateField,
+  type FieldName,
+  type FormErrors,
+} from "@/lib/validation/register";
 
 type Role = "customer" | "vendor";
 
@@ -47,6 +53,23 @@ interface RegisterFormProps {
 //   return result.data.url as string;
 // }
 
+const readValues = (form: HTMLFormElement): Record<FieldName, string> => {
+  const data = new FormData(form);
+  return {
+    name: String(data.get("name") ?? ""),
+    email: String(data.get("email") ?? ""),
+    password: String(data.get("password") ?? ""),
+    confirmPassword: String(data.get("confirmPassword") ?? ""),
+  };
+};
+
+const FieldError = ({ id, message }: { id: string; message?: string }) =>
+  message ? (
+    <p id={id} className="text-destructive text-xs">
+      {message}
+    </p>
+  ) : null;
+
 const roleOptions: Array<{
   value: Role;
   label: string;
@@ -67,7 +90,6 @@ const roleOptions: Array<{
   },
 ];
 
-
 function RegisterForm({
   defaultRole = "customer",
   submitLabel = "Create Account",
@@ -79,6 +101,43 @@ function RegisterForm({
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [image, setImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  // Validate a field when the user leaves it.
+  const handleBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+    const form = event.currentTarget.form;
+    if (!form) return;
+
+    const field = event.target.name as FieldName;
+    const values = readValues(form);
+    const message = validateField(field, values[field], values.password);
+
+    setErrors((prev) => {
+      const next = { ...prev, [field]: message };
+      // Changing the password also affects the confirm field.
+      if (field === "password" && values.confirmPassword) {
+        next.confirmPassword = validateField(
+          "confirmPassword",
+          values.confirmPassword,
+          values.password,
+        );
+      }
+      return next;
+    });
+  };
+
+  // While typing, only update a field that already shows an error.
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const form = event.currentTarget.form;
+    if (!form) return;
+
+    const field = event.target.name as FieldName;
+    if (!errors[field]) return;
+
+    const values = readValues(form);
+    const message = validateField(field, values[field], values.password);
+    setErrors((prev: FormErrors) => ({ ...prev, [field]: message }));
+  };
 
   // Local preview only — upload to ImgBB happens on submit later.
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,41 +188,34 @@ function RegisterForm({
 
     return result.imageUrl;
   };
-  
-
 
   const handleRegisterSubmit = async (
     event: React.FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault();
+
+    const form = event.currentTarget;
+    const values = readValues(form);
+    const nextErrors = validateAll(values);
+
+    setErrors(nextErrors);
+
+    const firstInvalid = Object.keys(nextErrors)[0] as FieldName | undefined;
+    if (firstInvalid) {
+      (form.elements.namedItem(firstInvalid) as HTMLElement | null)?.focus();
+      return;
+    }
+
     setLoading(true);
 
-    const formData = new FormData(event.currentTarget);
-
-    const nameValue = String(formData.get("name") ?? "");
-    const emailValue = String(formData.get("email") ?? "");
-    const passwordValue = String(formData.get("password") ?? "");
-    const confirmPasswordValue = String(formData.get("confirmPassword") ?? "");
-
-
-    const roleValue = (formData.get("role") as Role) || defaultRole;
+    const roleValue =
+      (new FormData(form).get("role") as Role | null) || defaultRole;
 
     const userData = {
-      name: nameValue,
-      email: emailValue,
-      password: passwordValue,
+      name: values.name,
+      email: values.email,
+      password: values.password,
     };
-
-    if (!nameValue || !emailValue || !passwordValue || !confirmPasswordValue) {
-      setLoading(false);
-      return;
-    }
-
-    if (passwordValue !== confirmPasswordValue) {
-      toast.error("Passwords do not match");
-      setLoading(false);
-      return;
-    }
 
     try {
       const imageUrl = await handleImageUpload();
@@ -171,7 +223,7 @@ function RegisterForm({
       const { data, error } = await signUp.email({
         ...userData,
         role: roleValue,
-        image: imageUrl ?? undefined
+        image: imageUrl ?? undefined,
       });
 
       if (error) {
@@ -179,7 +231,7 @@ function RegisterForm({
         throw error;
       }
 
-      if(data){
+      if (data) {
         toast.success("Welcome to PizzaHub 🍕");
         router.push("/");
       }
@@ -193,6 +245,9 @@ function RegisterForm({
 
   const passwordType = showPassword ? "text" : "password";
   const confirmPasswordType = showConfirmPassword ? "text" : "password";
+
+  const inputClass = (field: FieldName, base: string) =>
+    `${base} ${errors[field] ? "border-destructive" : ""}`;
 
   return (
     <form onSubmit={handleRegisterSubmit} className="space-y-5" noValidate>
@@ -292,8 +347,13 @@ function RegisterForm({
           required
           placeholder="e.g. John Doe"
           autoComplete="name"
-          className="h-10"
+          aria-invalid={!!errors.name}
+          aria-describedby={errors.name ? "name-error" : undefined}
+          onBlur={handleBlur}
+          onChange={handleChange}
+          className={inputClass("name", "h-10")}
         />
+        <FieldError id="name-error" message={errors.name} />
       </div>
 
       {/* Email */}
@@ -306,8 +366,13 @@ function RegisterForm({
           required
           placeholder="you@example.com"
           autoComplete="email"
-          className="h-10"
+          aria-invalid={!!errors.email}
+          aria-describedby={errors.email ? "email-error" : undefined}
+          onBlur={handleBlur}
+          onChange={handleChange}
+          className={inputClass("email", "h-10")}
         />
+        <FieldError id="email-error" message={errors.email} />
       </div>
 
       {/* Password */}
@@ -318,11 +383,14 @@ function RegisterForm({
             id="password"
             name="password"
             type={passwordType}
-            minLength={8}
             required
             placeholder="••••••••"
             autoComplete="new-password"
-            className="h-10 pr-10"
+            aria-invalid={!!errors.password}
+            aria-describedby={errors.password ? "password-error" : undefined}
+            onBlur={handleBlur}
+            onChange={handleChange}
+            className={inputClass("password", "h-10 pr-10")}
           />
           <Button
             type="button"
@@ -335,6 +403,7 @@ function RegisterForm({
             {showPassword ? <EyeOff /> : <Eye />}
           </Button>
         </div>
+        <FieldError id="password-error" message={errors.password} />
       </div>
 
       {/* Confirm password */}
@@ -344,12 +413,17 @@ function RegisterForm({
           <Input
             id="confirm-password"
             name="confirmPassword"
-            minLength={8}
             type={confirmPasswordType}
             required
             placeholder="••••••••"
             autoComplete="new-password"
-            className="h-10 pr-10"
+            aria-invalid={!!errors.confirmPassword}
+            aria-describedby={
+              errors.confirmPassword ? "confirm-password-error" : undefined
+            }
+            onBlur={handleBlur}
+            onChange={handleChange}
+            className={inputClass("confirmPassword", "h-10 pr-10")}
           />
           <Button
             type="button"
@@ -362,6 +436,10 @@ function RegisterForm({
             {showConfirmPassword ? <EyeOff /> : <Eye />}
           </Button>
         </div>
+        <FieldError
+          id="confirm-password-error"
+          message={errors.confirmPassword}
+        />
       </div>
 
       {/* Submit */}

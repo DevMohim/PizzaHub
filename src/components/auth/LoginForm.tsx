@@ -7,7 +7,9 @@ import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {  signIn } from "@/lib/auth-client";
+import { signIn } from "@/lib/auth-client";
+import { getUserByEmail } from "@/lib/api/users";
+import { IUser } from "@/types/user.type";
 
 function GoogleIcon() {
   return (
@@ -58,15 +60,13 @@ function LoginForm() {
         password: passwordValue,
       });
 
-      if (error) {
-        toast.error(error.message ?? "Invalid email or password");
+      if (error || !data) {
+        toast.error(error?.message ?? "Invalid email or password");
         return;
       }
 
-      if (data) {
-        toast.success("Signed in successfully!");
-        router.push("/");
-      }
+      toast.success("Signed in successfully!");
+      router.push("/dashboard");
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
@@ -80,12 +80,11 @@ function LoginForm() {
     try {
       const { error } = await signIn.social({
         provider: "google",
-        callbackURL: "/",
+        callbackURL: "/dashboard",
       });
       if (error) {
         toast.error(error.message ?? "Google sign-in failed");
       }
-      
     } catch {
       toast.error("Google sign-in failed. Please try again.");
     } finally {
@@ -104,7 +103,7 @@ function LoginForm() {
         size="lg"
         disabled={googleLoading || loading}
         onClick={handleGoogleSignIn}
-        className="h-10 w-full"
+        className="h-10 w-full cursor-pointer"
       >
         {googleLoading ? <Loader2 className="animate-spin" /> : <GoogleIcon />}
         Continue with Google
