@@ -6,7 +6,12 @@ import { TSessionUser } from "@/types/user.type";
 import { headers } from "next/headers";
 
 const NewMenuItemPage = async () => {
-  const session = await auth.api.getSession({headers : await headers()})
+  // disableCookieCache so a fresh Premium upgrade from Stripe shows up
+  // immediately instead of waiting for the 7-day session cache to expire.
+  const session = await auth.api.getSession({
+    headers: await headers(),
+    query: { disableCookieCache: true },
+  })
   if (!session?.user) return null
   const user = {
     ...session.user,

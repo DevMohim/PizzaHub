@@ -7,6 +7,7 @@ import { Loader2, Lock } from "lucide-react";
 import { CardContent } from "../ui/card";
 import { Separator } from "../ui/separator";
 import { authClient } from "@/lib/auth-client";
+import { useUserFromClient } from "@/utils/getUserFromClient";
 
 
 const premiumPlan = {
@@ -29,6 +30,8 @@ const formattedPrice = new Intl.NumberFormat("en-US", {
 
 const SubscriptionButtion = () => {
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const user = useUserFromClient()
+
   
 
   const handleCheckout = async (e: FormEvent<HTMLFormElement>) => {
@@ -43,7 +46,7 @@ const SubscriptionButtion = () => {
       }
 
       // Server should verify this token and decide the price itself
-      const result = await createTransaction(data.token);
+      const result = await createTransaction(data.token , user?.id as string);
       if (result.url) {
         window.location.assign(result.url);
       }

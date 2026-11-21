@@ -36,6 +36,13 @@ export const auth = betterAuth({
         defaultValue: "active",
         options: ["active", "blocked"],
       },
+      plan: {
+        type: "string",
+        required: false,
+        input: false,
+        defaultValue: "free",
+      },
+      
     },
   },
   plugins : [
