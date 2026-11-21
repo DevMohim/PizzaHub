@@ -10,6 +10,7 @@ export type TSessionUser = {
   image: string;
   name: string;
   role: UserRole;
+  isPremium?:boolean
 };
 
 export interface IUser{
@@ -23,4 +24,5 @@ export interface IUser{
   role: "vendor" | "admin" | "customer";
   status: string;
   isBlocked?: boolean
+  isPremium?:boolean
 };

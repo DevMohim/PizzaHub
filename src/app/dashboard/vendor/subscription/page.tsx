@@ -176,7 +176,7 @@ const VendorSubscriptionPage = () => {
               {/* CTA */}
               {plan.highlight ? (
                 <Link
-                  href="/checkout"
+                  href="/dashboard/vendor/subscription/checkout"
                   className={cn(
                     buttonVariants({ size: "lg" }),
                     "h-11 w-full bg-(image:--gradient-primary) text-white hover:opacity-90",
