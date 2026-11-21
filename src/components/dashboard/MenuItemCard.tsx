@@ -1,11 +1,11 @@
-import { MapPin, Trash2 } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { getCategoryLabel } from "@/config/menuCategories";
 import { getMenuItemStatusStyle } from "@/config/menuItemStatus";
 import { IMenuItem, MenuItemStatus } from "@/types/menuItem.type";
 import StatusCapsule from "@/components/shared/StatusCapsule";
 import MenuEditDialog from "../vendor/MenuEditDialog";
+import MenuDeleteDialog from "../vendor/MenuDeleteDialog";
 
 interface MenuItemCardProps {
   item: IMenuItem;
@@ -76,16 +76,7 @@ const MenuItemCard = ({ item }: MenuItemCardProps) => {
         />
         <MenuEditDialog item={item}/>
 
-        <Button
-          type="button"
-          variant="destructive"
-          size="icon"
-          aria-label={`Delete ${item.itemName}`}
-          title="Delete item"
-          className="shrink-0 cursor-pointer"
-        >
-          <Trash2 />
-        </Button>
+        <MenuDeleteDialog item={item} />
       </div>
     </article>
   );

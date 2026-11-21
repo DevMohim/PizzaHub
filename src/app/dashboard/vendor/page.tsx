@@ -10,9 +10,17 @@ import {
   TrendingUp,
   Utensils,
 } from "lucide-react";
-import { CategoryBarChart, OrdersAreaChart } from "@/components/dashboard/VendorCharts";
+import {
+  CategoryBarChart,
+  OrdersAreaChart,
+} from "@/components/dashboard/VendorCharts";
 import PlanProgress from "@/components/dashboard/PlanProgress";
-import { Avatar, AvatarFallback, AvatarBadge, AvatarImage } from "@/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarBadge,
+  AvatarImage,
+} from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -28,53 +36,11 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getMenuItemsByEmail } from "@/lib/api/menuItems";
 import { IMenuItem } from "@/types/menuItem.type";
+import { getOrdersByVendorEmail } from "@/lib/api/orders";
+
+import { IOrder } from "@/types/order.type";
 
 /* ---------- Static demo data ---------- */
-
-
-
-const recentOrders = [
-  {
-    id: "ORD-1042",
-    item: "Margherita Classic",
-    customer: "Sarah Khan",
-    date: "19 Nov 2026",
-    amount: 12.99,
-    status: "pending",
-  },
-  {
-    id: "ORD-1041",
-    item: "Pepperoni Feast",
-    customer: "Rahim Ahmed",
-    date: "19 Nov 2026",
-    amount: 15.5,
-    status: "accepted",
-  },
-  {
-    id: "ORD-1040",
-    item: "Veggie Supreme",
-    customer: "Nusrat Jahan",
-    date: "18 Nov 2026",
-    amount: 11.75,
-    status: "accepted",
-  },
-  {
-    id: "ORD-1039",
-    item: "BBQ Meat Lovers",
-    customer: "Tanvir Hasan",
-    date: "18 Nov 2026",
-    amount: 17.25,
-    status: "pending",
-  },
-  {
-    id: "ORD-1038",
-    item: "Garlic Bread Bites",
-    customer: "Mehjabin Chowdhury",
-    date: "17 Nov 2026",
-    amount: 6.5,
-    status: "accepted",
-  },
-] as const;
 
 const orderStatusStyles: Record<string, string> = {
   pending: "bg-warning/10 text-warning ring-warning/30",
@@ -83,41 +49,42 @@ const orderStatusStyles: Record<string, string> = {
 
 /* ---------- Page ---------- */
 
-const VendorDashboardPage = async() => {
-  const session = await auth.api.getSession({headers : await headers()})
-  const user = session?.user
+const VendorDashboardPage = async () => {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const user = session?.user;
 
-  const menuItems : IMenuItem[] = await getMenuItemsByEmail(user?.email as string)
-  const pendingsMenuItems = menuItems.filter(item => item.status === 'pending')
-  const acceptedMenuItems = menuItems.filter(item => item.status === 'approved')
+  const menuItems: IMenuItem[] = await getMenuItemsByEmail(
+    user?.email as string,
+  );
+  const orders: IOrder[] = await getOrdersByVendorEmail(user?.email as string);
 
+  const activeitems = menuItems.filter((item) => item.active);
+
+  const pendingsMenuItems = orders.filter((item) => item.status === "pending");
+  const acceptedMenuItems = orders.filter((item) => item.status === "approved");
 
   const stats = [
     {
       label: "Total Menu Items",
       value: menuItems.length,
-      delta: "+2 this week",
       icon: Utensils,
       tone: "text-primary bg-primary/10",
     },
     {
       label: "Active Items",
-      value: acceptedMenuItems.length,
-      delta: "at free plan limit",
+      value: activeitems.length,
       icon: CheckCircle2,
       tone: "text-success bg-success/10",
     },
     {
       label: "Pending Orders",
       value: pendingsMenuItems.length,
-      delta: "needs your action",
       icon: Clock,
       tone: "text-warning bg-warning/10",
     },
     {
       label: "Accepted Orders",
       value: acceptedMenuItems.length,
-      delta: "+18% vs last week",
       icon: TrendingUp,
       tone: "text-secondary bg-secondary/10",
     },
@@ -173,9 +140,6 @@ const VendorDashboardPage = async() => {
                   <p className="text-muted-foreground text-sm">{stat.label}</p>
                   <p className="font-heading mt-1 text-3xl font-bold">
                     {stat.value}
-                  </p>
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    {stat.delta}
                   </p>
                 </div>
                 <span
@@ -236,11 +200,17 @@ const VendorDashboardPage = async() => {
 
             <ul className="text-muted-foreground space-y-2 text-sm">
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="text-success size-4" aria-hidden="true" />
+                <CheckCircle2
+                  className="text-success size-4"
+                  aria-hidden="true"
+                />
                 Up to 3 active menu items
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="text-success size-4" aria-hidden="true" />
+                <CheckCircle2
+                  className="text-success size-4"
+                  aria-hidden="true"
+                />
                 Standard menu placement
               </li>
               <li className="flex items-center gap-2 opacity-60">
@@ -251,15 +221,18 @@ const VendorDashboardPage = async() => {
               </li>
             </ul>
 
-            <Link
-              href="/dashboard/vendor/subscription"
-              className={cn(
-                buttonVariants({ size: "lg" }),
-                "h-10 w-full bg-(image:--gradient-primary) text-white hover:opacity-90",
-              )}
-            >
-              Upgrade to Premium
-              <ArrowUpRight aria-hidden="true" />
+            <Link href="/dashboard/vendor/subscription">
+              <button
+                disabled={user?.plan !== "premium"}
+                className={cn(
+                  buttonVariants({ size: "lg" }),
+                  "h-10 w-full bg-(image:--gradient-primary) text-white hover:opacity-90 disabled:cursor-not-allowed",
+                )}
+              >
+                {" "}
+                Upgrade to Premium
+                <ArrowUpRight aria-hidden="true" />
+              </button>
             </Link>
           </CardContent>
         </Card>
@@ -271,7 +244,9 @@ const VendorDashboardPage = async() => {
         <Card className="xl:col-span-2">
           <CardHeader>
             <CardTitle className="font-heading">Recent Orders</CardTitle>
-            <CardDescription>Latest customer orders for your items</CardDescription>
+            <CardDescription>
+              Latest customer orders for your items
+            </CardDescription>
             <CardAction>
               <Link
                 href="/dashboard/vendor/orders"
@@ -306,29 +281,33 @@ const VendorDashboardPage = async() => {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentOrders.map((order) => (
+                  {orders.map((order) => (
                     <tr
-                      key={order.id}
+                      key={order._id}
                       className="border-b border-border/60 last:border-0"
                     >
                       <td className="py-3 pr-4">
-                        <p className="font-medium">{order.item}</p>
+                        <p className="font-medium">{order.itemName}</p>
                         <p className="text-muted-foreground text-xs">
-                          {order.id}
+                          {order._id}
                         </p>
                       </td>
-                      <td className="py-3 pr-4">{order.customer}</td>
+                      <td className="py-3 pr-4">{order.userName}</td>
                       <td className="text-muted-foreground py-3 pr-4">
-                        {order.date}
+                        {order.requestedAt?.$date
+                          ? new Date(
+                              order.requestedAt.$date,
+                            ).toLocaleDateString()
+                          : "—"}
                       </td>
                       <td className="py-3 pr-4 font-medium">
-                        ${order.amount.toFixed(2)}
+                        ${order.price.toFixed(2)}
                       </td>
                       <td className="py-3 text-right">
                         <span
                           className={cn(
                             "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase ring-1",
-                            orderStatusStyles[order.status],
+                            orderStatusStyles[order.status as string],
                           )}
                         >
                           <span
@@ -346,33 +325,38 @@ const VendorDashboardPage = async() => {
 
             {/* Mobile list */}
             <ul className="space-y-3 md:hidden">
-              {recentOrders.map((order) => (
+              {orders.map((order) => (
                 <li
-                  key={order.id}
+                  key={order._id}
                   className="rounded-xl border border-border p-3"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">
-                        {order.item}
+                        {order.itemName}
                       </p>
                       <p className="text-muted-foreground truncate text-xs">
-                        {order.customer} · {order.date}
+                        {order.userName} ·{" "}
+                        {order.requestedAt?.$date
+                          ? new Date(
+                              order.requestedAt.$date,
+                            ).toLocaleDateString()
+                          : "—"}
                       </p>
                     </div>
                     <span
                       className={cn(
                         "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase ring-1",
-                        orderStatusStyles[order.status],
+                        orderStatusStyles[order.status as string],
                       )}
                     >
                       {order.status}
                     </span>
                   </div>
                   <p className="text-muted-foreground mt-2 text-xs">
-                    {order.id} ·{" "}
+                    {order._id} ·{" "}
                     <span className="text-foreground font-medium">
-                      ${order.amount.toFixed(2)}
+                      ${order.price.toFixed(2)}
                     </span>
                   </p>
                 </li>

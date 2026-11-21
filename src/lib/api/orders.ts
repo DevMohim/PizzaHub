@@ -1,6 +1,6 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export const getOrdersByEmail = async(email:string) => {
+export const getOrdersByEmail = async(email:string | undefined) => {
    if (!email) {
      throw new Error("User email is required.");
    }
