@@ -2,7 +2,7 @@
 import { Button } from '../ui/button';
 import { CookingPot, XCircle } from 'lucide-react';
 import { IOrder } from '@/types/order.type';
-import { updateApproveOrder, updateRejectOrder } from '@/lib/actions/orders';
+import { updateAcceptedOrder, updateRejectOrder } from '@/lib/actions/orders';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
@@ -13,7 +13,7 @@ const ActionBtns = ({order} : {order:IOrder}) => {
    const handleOrderApproved = async() => {
       try {
          console.log("item id", order?.itemId);
-        await updateApproveOrder(order.itemId);
+        await updateAcceptedOrder(order.itemId);
         toast.success("Order approved");
         router.refresh();
       } catch (error) {
@@ -34,7 +34,7 @@ const ActionBtns = ({order} : {order:IOrder}) => {
    return (
      <>
        <div className="flex items-center gap-2">
-         {order.status !== "approved" && (
+         {order.status !== "accepted" && (
            <Button
              type="button"
              variant="destructive"
@@ -53,7 +53,7 @@ const ActionBtns = ({order} : {order:IOrder}) => {
              size="sm"
              className="cursor-pointer bg-(image:--gradient-primary) text-white hover:opacity-90"
              onClick={handleOrderApproved}
-             disabled = {order.status === 'approved'}
+             disabled = {order.status === 'accepted'}
            >
              <CookingPot aria-hidden="true" />
              Approve

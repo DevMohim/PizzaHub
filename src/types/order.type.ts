@@ -1,4 +1,4 @@
-export type OrderStatus = "pending" | "approved" | "rejected" | "cancelled";
+export type OrderStatus = "pending" | "accepted" | "rejected" | "cancelled";
 
 export interface IOrder {
   _id?: string

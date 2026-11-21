@@ -39,8 +39,8 @@ const statusStyles: Record<OrderStatus, { label: string; className: string }> =
       label: "Pending",
       className: "bg-warning/10 text-warning ring-warning/30",
     },
-    approved: {
-      label: "Approved",
+    accepted: {
+      label: "Accepted",
       className: "bg-success/10 text-success ring-success/30",
     },
     rejected: {
@@ -73,7 +73,7 @@ const OrderPage = async () => {
   // 3) Count orders per status for the stat cards.
   const total = myOrders.length;
   const pending = myOrders.filter((o) => o.status === "pending").length;
-  const approved = myOrders.filter((o) => o.status === "approved").length;
+  const accepted = myOrders.filter((o) => o.status === "accepted").length;
   const rejected = myOrders.filter((o) => o.status === "rejected").length;
 
   // 4) Stat cards data.
@@ -91,8 +91,8 @@ const OrderPage = async () => {
       tone: "text-warning bg-warning/10",
     },
     {
-      label: "Approved",
-      value: approved,
+      label: "Accepted",
+      value: accepted,
       icon: CookingPot,
       tone: "text-success bg-success/10",
     },
@@ -164,7 +164,7 @@ const OrderPage = async () => {
               Orders for your items
             </h2>
             <p className="text-muted-foreground text-sm">
-              {total} orders · {pending} pending · {approved} approved ·{" "}
+              {total} orders · {pending} pending · {accepted} accepted ·{" "}
               {rejected} rejected
             </p>
           </div>

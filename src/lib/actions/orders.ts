@@ -54,7 +54,7 @@ export const cancelOrder = async(id:string) => {
   }
 }
 
-export const updateApproveOrder = async (id:string) => {
+export const updateAcceptedOrder = async (id:string) => {
   if (!id) {
     throw new Error("Menu item id is required.");
   }

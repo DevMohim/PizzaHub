@@ -73,7 +73,7 @@ const OrderCard =  ({ order }: { order: IOrder }) => {
             </div>
             <p className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
               <Utensils className="size-3.5" aria-hidden="true" />
-              {order.vendorName}
+              {order.vendorEmail}
               <span aria-hidden="true">·</span>
               <span>#{order.itemId}</span>
             </p>

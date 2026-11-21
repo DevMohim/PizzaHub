@@ -1,3 +1,5 @@
+
+
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -10,10 +12,9 @@ import {
   XCircle,
 } from "lucide-react";
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { getOrdersByEmail } from "@/lib/api/orders";
 import { IOrder, OrderStatus } from "@/types/order.type";
-import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -28,6 +29,9 @@ import { Progress, ProgressIndicator, ProgressTrack } from "@/components/ui/prog
 import StatusCapsule from "@/components/shared/StatusCapsule";
 import { cn } from "cn";
 
+/* -------------------------------------------------------------------------- */
+/*                          Status config (shared)                            */
+/* -------------------------------------------------------------------------- */
 
 const statusStyles: Record<OrderStatus, { label: string; className: string }> =
   {
@@ -36,7 +40,7 @@ const statusStyles: Record<OrderStatus, { label: string; className: string }> =
       className: "bg-warning/10 text-warning ring-warning/30",
     },
     accepted: {
-      label: "Accepted",
+      label: "Approved",
       className: "bg-success/10 text-success ring-success/30",
     },
     rejected: {
@@ -49,69 +53,15 @@ const statusStyles: Record<OrderStatus, { label: string; className: string }> =
     },
   };
 
-const RecentOrderRow = ({ order }: { order: IOrder }) => {
-  const status = statusStyles[order.status as OrderStatus] ?? statusStyles.pending;
-
-  return (
-    <li className="flex flex-col gap-3 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
-      {/* Thumbnail */}
-      <div className="relative h-32 w-full shrink-0 overflow-hidden rounded-lg bg-muted sm:h-16 sm:w-16">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={order.itemImage}
-          alt={order.itemName}
-          className="size-full object-cover"
-          loading="lazy"
-        />
-      </div>
-
-      {/* Details */}
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-heading truncate text-sm font-semibold">
-            {order.itemName}
-          </h3>
-          <Badge variant="outline" className="text-[11px]">
-            {order.itemCategory}
-          </Badge>
-        </div>
-        <p className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
-          <Utensils className="size-3.5" aria-hidden="true" />
-          {order.vendorName}
-          <span aria-hidden="true">·</span>
-          <span>#{order.itemId}</span>
-        </p>
-        <div className="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-          <span className="flex items-center gap-1">
-            <CalendarDays className="size-3.5" aria-hidden="true" />
-            {order.deliveryDate}
-          </span>
-          <span className="font-heading text-primary text-sm font-bold">
-            ${order.totalAmount.toFixed(2)}
-          </span>
-          <span className="flex items-center gap-1">
-            <Clock className="size-3.5" aria-hidden="true" />
-            {order.requestedAt?.$date?.slice(0, 10) ?? ""}
-          </span>
-        </div>
-      </div>
-
-      {/* Status */}
-      <div className="flex shrink-0 items-center justify-between border-t border-border pt-3 sm:justify-end sm:border-t-0 sm:pt-0">
-        <StatusCapsule label={status.label} className={status.className} />
-      </div>
-    </li>
-  );
-};
-
 /* -------------------------------------------------------------------------- */
 /*                              Page                                          */
 /* -------------------------------------------------------------------------- */
 
-const CustomerOverviewPage = async () => {
-  const session = await auth.api.getSession({ headers: await headers() });
+export default async function CustomerOverviewPage() {
+  const session = await auth.api.getSession();
   const user = session?.user;
-  const orders: IOrder[] = await getOrdersByEmail(user?.email as string);
+
+ const orders:IOrder[] = await getOrdersByEmail(user?.email as string);
 
   const total = orders.length;
   const pending = orders.filter((o) => o.status === "pending").length;
@@ -119,7 +69,8 @@ const CustomerOverviewPage = async () => {
   const rejected = orders.filter((o) => o.status === "rejected").length;
 
   const recentOrders = orders.slice(0, 4);
-  
+
+  const firstName = user?.name?.split(" ")[0] ?? "Pizza Lover";
 
   const stats = [
     {
@@ -148,8 +99,6 @@ const CustomerOverviewPage = async () => {
     },
   ] as const;
 
-  const firstName = user?.name?.split(" ")[0] ?? "Pizza Lover";
-
   return (
     <div className="w-full px-4 py-8 md:px-6">
       {/* Header — greeting + profile + CTA */}
@@ -159,13 +108,9 @@ const CustomerOverviewPage = async () => {
             {user?.image ? (
               <AvatarImage src={user.image} alt={user.name} />
             ) : null}
-            <AvatarFallback
-              className="font-heading text-sm font-bold text-white"
-              style={{ background: "var(--gradient-primary)" }}
-            >
+            <span className="font-heading text-sm font-bold text-white">
               {user?.name?.charAt(0).toUpperCase() ?? "P"}
-            </AvatarFallback>
-            <AvatarBadge className="bg-success" />
+            </span>
           </Avatar>
           <div>
             <h1 className="font-heading text-2xl font-bold sm:text-3xl">
@@ -201,10 +146,7 @@ const CustomerOverviewPage = async () => {
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <div
-              key={stat.label}
-              className="rounded-xl border border-border bg-card px-4 py-3 shadow-xs"
-            >
+            <Card key={stat.label} className="rounded-xl border border-border bg-card px-4 py-3 shadow-xs">
               <div className="flex items-center justify-between gap-2">
                 <p className="font-heading text-2xl font-bold sm:text-3xl">
                   {stat.value}
@@ -221,7 +163,7 @@ const CustomerOverviewPage = async () => {
               <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
                 {stat.label}
               </p>
-            </div>
+            </Card>
           );
         })}
       </div>
@@ -233,15 +175,6 @@ const CustomerOverviewPage = async () => {
           <CardHeader>
             <CardTitle className="font-heading">Recent Orders</CardTitle>
             <CardDescription>Your latest pizza orders</CardDescription>
-            <CardAction>
-              <Link
-                href="/dashboard/customer/orders"
-                className={buttonVariants({ variant: "ghost", size: "sm" })}
-              >
-                View all
-                <ArrowUpRight aria-hidden="true" />
-              </Link>
-            </CardAction>
           </CardHeader>
           <CardContent>
             {recentOrders.length > 0 ? (
@@ -309,12 +242,9 @@ const CustomerOverviewPage = async () => {
                   {user?.image ? (
                     <AvatarImage src={user.image} alt={user.name} />
                   ) : null}
-                  <AvatarFallback
-                    className="font-heading text-sm font-bold text-white"
-                    style={{ background: "var(--gradient-primary)" }}
-                  >
+                  <span className="font-heading text-sm font-bold text-white">
                     {user?.name?.charAt(0).toUpperCase() ?? "P"}
-                  </AvatarFallback>
+                  </span>
                 </Avatar>
                 <div className="min-w-0">
                   <p className="font-heading truncate text-sm font-semibold">
@@ -372,9 +302,7 @@ const CustomerOverviewPage = async () => {
                     </div>
                     <Progress value={pct}>
                       <ProgressTrack>
-                        <ProgressIndicator
-                          className={cn(row.tone)}
-                        />
+                        <ProgressIndicator className={cn(row.tone)} />
                       </ProgressTrack>
                     </Progress>
                   </div>
@@ -386,6 +314,62 @@ const CustomerOverviewPage = async () => {
       </div>
     </div>
   );
-};
+}
 
-export default CustomerOverviewPage;
+/* -------------------------------------------------------------------------- */
+/*                              Recent Order Row                              */
+/* -------------------------------------------------------------------------- */
+
+const RecentOrderRow = ({ order }: { order: IOrder }) => {
+  const status = statusStyles[order.status as OrderStatus] ?? statusStyles.pending;
+
+  return (
+    <li className="flex flex-col gap-3 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
+      {/* Thumbnail */}
+      <div className="relative h-32 w-full shrink-0 overflow-hidden rounded-lg bg-muted sm:h-16 sm:w-16">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={order.itemImage}
+          alt={order.itemName}
+          className="size-full object-cover"
+        />
+      </div>
+
+      {/* Details */}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="font-heading truncate text-sm font-semibold">
+            {order.itemName}
+          </h3>
+          <Badge variant="outline" className="text-[11px]">
+            {order.itemCategory}
+          </Badge>
+        </div>
+        <p className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
+          <Utensils className="size-3.5" aria-hidden="true" />
+          {order.userName}
+          <span aria-hidden="true">·</span>
+          <span>#{order.itemId}</span>
+        </p>
+        <div className="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+          <span className="flex items-center gap-1">
+            <CalendarDays className="size-3.5" aria-hidden="true" />
+            {order.deliveryDate}
+          </span>
+          <span className="font-heading text-primary text-sm font-bold">
+            ${order.totalAmount.toFixed(2)}
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock className="size-3.5" aria-hidden="true" />
+            {order.requestedAt?.$date?.slice(0, 10) ?? ""}
+          </span>
+        </div>
+      </div>
+
+      {/* Status */}
+      <div className="flex shrink-0 items-center justify-between border-t border-border pt-3 sm:justify-end sm:border-t-0 sm:pt-0">
+        <StatusCapsule label={status.label} className={status.className} />
+      </div>
+    </li>
+  );
+};
