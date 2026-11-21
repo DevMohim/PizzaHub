@@ -61,7 +61,7 @@ const VendorDashboardPage = async () => {
   const activeitems = menuItems.filter((item) => item.active);
 
   const pendingsMenuItems = orders.filter((item) => item.status === "pending");
-  const acceptedMenuItems = orders.filter((item) => item.status === "approved");
+  const acceptedMenuItems = orders.filter((item) => item.status === "accepted");
 
   const stats = [
     {

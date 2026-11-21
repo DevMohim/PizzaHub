@@ -28,6 +28,7 @@ import {
 import { Progress, ProgressIndicator, ProgressTrack } from "@/components/ui/progress";
 import StatusCapsule from "@/components/shared/StatusCapsule";
 import { cn } from "cn";
+import { headers } from "next/headers";
 
 /* -------------------------------------------------------------------------- */
 /*                          Status config (shared)                            */
@@ -58,7 +59,7 @@ const statusStyles: Record<OrderStatus, { label: string; className: string }> =
 /* -------------------------------------------------------------------------- */
 
 export default async function CustomerOverviewPage() {
-  const session = await auth.api.getSession();
+  const session = await auth.api.getSession({headers : await headers()});
   const user = session?.user;
 
  const orders:IOrder[] = await getOrdersByEmail(user?.email as string);

@@ -1,29 +1,30 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
-/** Optional filters accepted by the `GET /menuItems` endpoint. */
 export interface MenuItemsQuery {
-  /** Free-text search across item name, description, category and location. */
   search?: string;
-  /** Category value, e.g. "classic-pizzas". Use "all" to skip. */
   category?: string;
-  /** Location name. Use "all" to skip. */
   location?: string;
-  /** "default" | "price-asc" | "price-desc". */
   sort?: string;
-  /** Review status, e.g. "approved" or "pending". */
   status?: string;
-  /** "true" to only get published items. */
   active?: string;
-  /** Vendor email — used by the vendor dashboard. */
   email?: string;
 }
 
-/** Turns the query object into a URL query string, skipping empty values. */
+const getBaseUrl = () => {
+  if (!BASE_URL) {
+    throw new Error(
+      "NEXT_PUBLIC_API_URL is not set. Check your .env.local file.",
+    );
+  }
+  return BASE_URL;
+};
+
+/** Skips empty values and "all", which means "no filter". */
 const buildQueryString = (query: MenuItemsQuery) => {
   const params = new URLSearchParams();
 
   Object.entries(query).forEach(([key, value]) => {
-    if (value) {
+    if (value && value !== "all") {
       params.set(key, value);
     }
   });
@@ -31,26 +32,25 @@ const buildQueryString = (query: MenuItemsQuery) => {
   return params.toString();
 };
 
+const fetchJson = async (url: string) => {
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    throw new Error(`Request failed: ${res.status} ${res.statusText} (${url})`);
+  }
+
+  return res.json();
+};
+
 export const getMenuItems = async (query: MenuItemsQuery = {}) => {
   const queryString = buildQueryString(query);
-  const url = queryString
-    ? `${BASE_URL}/menuItems?${queryString}`
-    : `${BASE_URL}/menuItems`;
+  const url = `${getBaseUrl()}/menuItems${queryString ? `?${queryString}` : ""}`;
 
   try {
-    const res = await fetch(url);
-
-    if (!res.ok) {
-      throw new Error(
-        `Failed to get menu items. Server returned ${res.status} ${res.statusText}.`,
-      );
-    }
-
-    return await res.json();
+    return await fetchJson(url);
   } catch (error) {
-    console.error("Get menu item failed:", error);
-
-    throw new Error("Could not get menu item.", { cause: error });
+    console.error("Get menu items failed:", error);
+    throw error;
   }
 };
 
@@ -58,7 +58,6 @@ export const getMenuItemsByEmail = async (email: string) => {
   if (!email) {
     throw new Error("User email is required.");
   }
-
   return getMenuItems({ email });
 };
 
@@ -68,19 +67,10 @@ export const getMenuItemsById = async (id: string) => {
   }
 
   try {
-    const res = await fetch(`${BASE_URL}/menuItems/${id}`);
-
-    if (!res.ok) {
-      throw new Error(
-        `Failed to get menu items. Server returned ${res.status} ${res.statusText}.`,
-      );
-    }
-
-    return await res.json();
+    return await fetchJson(`${getBaseUrl()}/menuItems/${id}`);
   } catch (error) {
     console.error("Get menu item failed:", error);
-
-    throw new Error("Could not get menu item.", { cause: error });
+    throw error;
   }
 };
 
