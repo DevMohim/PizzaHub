@@ -45,14 +45,14 @@ const UsersFilters = ({ initial, resultCount }: UsersFiltersProps) => {
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  const [search, setSearch] = useState(initial.search);
+  const [search, setSearch] = useState(initial?.search);
   const [previousInitialSearch, setPreviousInitialSearch] =
-    useState(initial.search);
+    useState(initial?.search);
 
   // Keep the input in sync when the URL changes (e.g. browser back button).
-  if (initial.search !== previousInitialSearch) {
-    setPreviousInitialSearch(initial.search);
-    setSearch(initial.search);
+  if (initial?.search !== previousInitialSearch) {
+    setPreviousInitialSearch(initial?.search);
+    setSearch(initial?.search);
   }
 
   const updateParams = (changes: Record<string, string | null>) => {
@@ -75,8 +75,8 @@ const UsersFilters = ({ initial, resultCount }: UsersFiltersProps) => {
 
   // Wait until the user stops typing before updating the URL / refetching.
   useEffect(() => {
-    const trimmed = search.trim();
-    if (trimmed === initial.search) return;
+    const trimmed = search?.trim();
+    if (trimmed === initial?.search) return;
 
     const timer = setTimeout(() => {
       updateParams({ search: trimmed || null });
@@ -87,7 +87,7 @@ const UsersFilters = ({ initial, resultCount }: UsersFiltersProps) => {
   }, [search]);
 
   const hasFilters =
-    initial.search !== "" || initial.role !== "all" || initial.status !== "all";
+    initial?.search !== "" || initial?.role !== "all" || initial?.status !== "all";
 
   const resetFilters = () => {
     setSearch("");
@@ -120,7 +120,7 @@ const UsersFilters = ({ initial, resultCount }: UsersFiltersProps) => {
         <Select
           name="role"
           items={ROLE_OPTIONS}
-          value={initial.role}
+          value={initial?.role}
           onValueChange={(value) => updateParams({ role: value ?? "all" })}
         >
           <SelectTrigger className="h-10 w-full" aria-label="Filter by role">
@@ -143,7 +143,7 @@ const UsersFilters = ({ initial, resultCount }: UsersFiltersProps) => {
         <Select
           name="status"
           items={STATUS_OPTIONS}
-          value={initial.status}
+          value={initial?.status}
           onValueChange={(value) => updateParams({ status: value ?? "all" })}
         >
           <SelectTrigger className="h-10 w-full" aria-label="Filter by status">
