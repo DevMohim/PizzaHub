@@ -236,11 +236,21 @@ function RegisterForm({
         router.push("/");
       }
     } catch (error) {
-      console.error("Register error:", error);
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+  console.error("REGISTER ERROR:", error);
+
+  if (error instanceof Error) {
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+  }
+
+  toast.error(
+    error instanceof Error
+      ? error.message
+      : "Something went wrong. Please try again."
+  );
+} finally {
+  setLoading(false);
+}
   };
 
   const passwordType = showPassword ? "text" : "password";
