@@ -1,151 +1,213 @@
 "use client";
 
-import { Search, SlidersHorizontal, UtensilsCrossed, X } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { RotateCcw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { MENU_CATEGORIES } from "@/config/menuCategories";
 
-const statusOptions = [
-  { value: "all", label: "All Statuses" },
+export interface VendorOption {
+  value: string;
+  label: string;
+}
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "সব status" },
   { value: "pending", label: "Pending" },
-  { value: "approved", label: "Approved" },
-  { value: "active", label: "Active" },
+  { value: "approved", label: "Approved (সব)" },
+  { value: "active", label: "Active (live)" },
   { value: "inactive", label: "Inactive" },
   { value: "rejected", label: "Rejected" },
 ];
 
-const categoryOptions = [
-  { value: "all", label: "All Categories" },
-  ...MENU_CATEGORIES.map((category) => ({
-    value: category.value,
-    label: category.label,
-  })),
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+  { value: "price-asc", label: "Price: low to high" },
+  { value: "price-desc", label: "Price: high to low" },
+  { value: "name-asc", label: "Name: A to Z" },
 ];
 
+const selectClass =
+  "border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2";
+
 interface MenuItemsFiltersProps {
-  search: string;
-  status: string;
-  category: string;
-  onSearchChange: (value: string) => void;
-  onStatusChange: (value: string) => void;
-  onCategoryChange: (value: string) => void;
-  onReset: () => void;
-  hasFilters: boolean;
+  initial: {
+    search: string;
+    status: string;
+    category: string;
+    vendor: string;
+    sort: string;
+  };
+  vendors: VendorOption[];
   resultCount: number;
   totalCount: number;
 }
 
-/**
- * Search + status/category filter bar for the admin Manage Menu Items page.
- * The page owns the filter state and passes it down as props.
- */
 const MenuItemsFilters = ({
-  search,
-  status,
-  category,
-  onSearchChange,
-  onStatusChange,
-  onCategoryChange,
-  onReset,
-  hasFilters,
+  initial,
+  vendors,
   resultCount,
   totalCount,
 }: MenuItemsFiltersProps) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+
+  const [search, setSearch] = useState(initial.search);
+  const [previousInitialSearch, setPreviousInitialSearch] = useState(initial.search);
+
+  // URL থেকে আসা নতুন search value এলে render-এর সময় input sync করা
+  if (initial.search !== previousInitialSearch) {
+    setPreviousInitialSearch(initial.search);
+    setSearch(initial.search);
+  }
+
+
+  const updateParams = (changes: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    Object.entries(changes).forEach(([key, value]) => {
+      if (
+        value === null ||
+        value === "" ||
+        value === "all" ||
+        (key === "sort" && value === "newest")
+      ) {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    });
+
+    // ফিল্টার বদলালে সবসময় প্রথম page থেকে শুরু
+    params.delete("page");
+
+    const query = params.toString();
+    startTransition(() => {
+      router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    });
+  };
+  // Debounce: টাইপ শেষ হওয়ার পর URL আপডেট
+  useEffect(() => {
+    const trimmed = search.trim();
+    if (trimmed === initial.search) return;
+
+    const timer = setTimeout(() => {
+      updateParams({ search: trimmed || null });
+    }, 400);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  
+
+  const hasFilters =
+    initial.search !== "" ||
+    initial.status !== "all" ||
+    initial.category !== "all" ||
+    initial.vendor !== "all" ||
+    initial.sort !== "newest";
+
+  const resetFilters = () => {
+    setSearch("");
+    startTransition(() => {
+      router.push(pathname, { scroll: false });
+    });
+  };
+
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-xs">
-      <div className="grid gap-3 md:grid-cols-[1fr_200px_220px]">
-        {/* Search by item name or vendor email */}
-        <div className="relative">
+    <div className="border-border bg-card space-y-3 rounded-2xl border p-4 shadow-xs">
+      <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+        <label className="relative block">
           <Search
-            className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+            className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2"
             aria-hidden="true"
           />
-          <Input
+          <input
             type="search"
-            name="search"
             value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search by item name or vendor email…"
-            aria-label="Search menu items by name or vendor email"
-            className="h-10 pl-9"
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Item name, description, location, বা vendor খুঁজুন"
+            className="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border pr-3 pl-9 text-sm outline-none focus:ring-2"
           />
-        </div>
+        </label>
 
-        {/* Filter by status */}
-        <Select
-          name="status"
-          items={statusOptions}
-          value={status}
-          onValueChange={(value) => onStatusChange(value ?? "all")}
+        <select
+          value={initial.sort}
+          onChange={(e) => updateParams({ sort: e.target.value })}
+          className={selectClass}
+          aria-label="Sort"
         >
-          <SelectTrigger className="h-10 w-full" aria-label="Filter by status">
-            <SlidersHorizontal
-              className="text-muted-foreground size-4"
-              aria-hidden="true"
-            />
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            {statusOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          {SORT_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
 
-        {/* Filter by category */}
-        <Select
-          name="category"
-          items={categoryOptions}
-          value={category}
-          onValueChange={(value) => onCategoryChange(value ?? "all")}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={resetFilters}
+          disabled={!hasFilters || isPending}
+          className="h-10"
         >
-          <SelectTrigger className="h-10 w-full" aria-label="Filter by category">
-            <UtensilsCrossed
-              className="text-muted-foreground size-4"
-              aria-hidden="true"
-            />
-            <SelectValue placeholder="All Categories" />
-          </SelectTrigger>
-          <SelectContent>
-            {categoryOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <RotateCcw aria-hidden="true" />
+          Reset
+        </Button>
       </div>
 
-      {/* Result count + clear button */}
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-muted-foreground text-xs">
-          Showing{" "}
-          <span className="text-foreground font-medium">{resultCount}</span> of{" "}
-          {totalCount} {totalCount === 1 ? "submission" : "submissions"}
-        </p>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <select
+          value={initial.status}
+          onChange={(e) => updateParams({ status: e.target.value })}
+          className={selectClass}
+          aria-label="Status"
+        >
+          {STATUS_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
 
-        {hasFilters && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onReset}
-            className="text-muted-foreground h-7 text-xs"
-          >
-            <X aria-hidden="true" />
-            Clear filters
-          </Button>
-        )}
+        <select
+          value={initial.category}
+          onChange={(e) => updateParams({ category: e.target.value })}
+          className={selectClass}
+          aria-label="Category"
+        >
+          <option value="all">সব category</option>
+          {MENU_CATEGORIES.map((cat) => (
+            <option key={cat.value} value={cat.value}>
+              {cat.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={initial.vendor}
+          onChange={(e) => updateParams({ vendor: e.target.value })}
+          className={selectClass}
+          aria-label="Vendor"
+        >
+          <option value="all">সব vendor</option>
+          {vendors.map((v) => (
+            <option key={v.value} value={v.value}>
+              {v.label}
+            </option>
+          ))}
+        </select>
       </div>
+
+      <p className="text-muted-foreground text-xs">
+        {isPending
+          ? "Loading..."
+          : `${resultCount} / ${totalCount} টি item দেখাচ্ছে`}
+      </p>
     </div>
   );
 };

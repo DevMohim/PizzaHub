@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { MapPin, Pizza, RotateCcw, SearchX, Store } from "lucide-react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { MapPin, Pizza, SearchX, Store } from "lucide-react";
 import MenuItemRowActions from "@/components/admin/MenuItemRowActions";
-import MenuItemsFilters from "@/components/admin/MenuItemsFilters";
+import MenuItemsFilters, {
+  type VendorOption,
+} from "@/components/admin/MenuItemsFilters";
 import StatusCapsule from "@/components/shared/StatusCapsule";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -25,10 +26,9 @@ import {
 } from "@/components/ui/table";
 import { getCategoryLabel } from "@/config/menuCategories";
 import { getMenuItemStatusStyle } from "@/config/menuItemStatus";
-import { IMenuItem } from "@/types/menuItem.type";
-import { cn } from "cn";
+import type { IMenuItem } from "@/types/menuItem.type";
+import { cn } from "@/lib/utils";
 
-/** Warm tint cycle for image-less thumbnails. */
 const thumbTints = [
   "bg-primary/10 text-primary",
   "bg-warning/10 text-warning",
@@ -36,101 +36,70 @@ const thumbTints = [
   "bg-success/10 text-success",
 ];
 
-/**
- * Checks one item against the selected status filter.
- * "Active"/"Inactive" only apply to approved items — pending and rejected
- * items are neither published nor unpublished yet.
- */
-const matchesStatusFilter = (item: IMenuItem, filter: string) => {
-  const itemStatus = item.status ?? "pending";
-
-  if (filter === "all") return true;
-  if (filter === "active") {
-    return itemStatus === "approved" && item.active !== false;
-  }
-  if (filter === "inactive") {
-    return itemStatus === "approved" && item.active === false;
-  }
-
-  return itemStatus === filter;
-};
-
 interface MenuItemsManagerProps {
-  menuItems: IMenuItem[];
+  items: IMenuItem[];
+  total: number;
+  page: number;
+  limit: number;
+  vendors: VendorOption[];
+  initialFilters: {
+    search: string;
+    status: string;
+    category: string;
+    vendor: string;
+    sort: string;
+  };
 }
 
-const MenuItemsManager = ({ menuItems }: MenuItemsManagerProps) => {
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [category, setCategory] = useState("all");
+const MenuItemsManager = ({
+  items,
+  total,
+  page,
+  limit,
+  vendors,
+  initialFilters,
+}: MenuItemsManagerProps) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const pendingCount = useMemo(
-    () =>
-      menuItems.filter((item) => (item.status ?? "pending") === "pending")
-        .length,
-    [menuItems],
-  );
-
-  // Filter in the browser so results update instantly as the admin types.
-  const filteredItems = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return menuItems.filter((item) => {
-      const matchesSearch =
-        query === "" ||
-        item.itemName.toLowerCase().includes(query) ||
-        (item.vendorEmail ?? "").toLowerCase().includes(query);
-
-      const matchesCategory = category === "all" || item.category === category;
-
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesStatusFilter(item, status)
-      );
-    });
-  }, [menuItems, search, status, category]);
-
+  const totalPages = Math.max(1, Math.ceil(total / limit));
   const hasFilters =
-    search.trim() !== "" || status !== "all" || category !== "all";
+    initialFilters.search !== "" ||
+    initialFilters.status !== "all" ||
+    initialFilters.category !== "all" ||
+    initialFilters.vendor !== "all" ||
+    initialFilters.sort !== "newest";
 
-  const resetFilters = () => {
-    setSearch("");
-    setStatus("all");
-    setCategory("all");
+  const goToPage = (nextPage: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextPage <= 1) params.delete("page");
+    else params.set("page", String(nextPage));
+
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
   };
 
   return (
     <>
-      {/* Filters */}
       <div className="mb-5">
         <MenuItemsFilters
-          search={search}
-          status={status}
-          category={category}
-          onSearchChange={setSearch}
-          onStatusChange={setStatus}
-          onCategoryChange={setCategory}
-          onReset={resetFilters}
-          hasFilters={hasFilters}
-          resultCount={filteredItems.length}
-          totalCount={menuItems.length}
+          initial={initialFilters}
+          vendors={vendors}
+          resultCount={items.length}
+          totalCount={total}
         />
       </div>
 
-      {/* Table */}
-      {filteredItems.length > 0 ? (
+      {items.length > 0 ? (
         <Card className="gap-0 py-0">
-          <CardHeader className="border-b border-border py-4">
+          <CardHeader className="border-border border-b py-4">
             <CardTitle>All Submissions</CardTitle>
             <CardDescription>
-              {filteredItems.length} of {menuItems.length} items ·{" "}
-              {pendingCount} awaiting review
+              Page {page} of {totalPages} · {total} items
             </CardDescription>
             <CardAction>
-              <Badge variant="secondary">
-                {filteredItems.length} shown
-              </Badge>
+              <Badge variant="secondary">{items.length} shown</Badge>
             </CardAction>
           </CardHeader>
 
@@ -144,7 +113,7 @@ const MenuItemsManager = ({ menuItems }: MenuItemsManagerProps) => {
                   <TableHead className="w-30 text-xs tracking-wide uppercase">
                     Status
                   </TableHead>
-                  <TableHead className="hidden w-30 text-xs tracking-wide uppercase lg:table-cell">
+                  <TableHead className="w-30 hidden text-xs tracking-wide uppercase lg:table-cell">
                     Location
                   </TableHead>
                   <TableHead className="w-75 pr-4 text-right text-xs tracking-wide uppercase">
@@ -154,25 +123,24 @@ const MenuItemsManager = ({ menuItems }: MenuItemsManagerProps) => {
               </TableHeader>
 
               <TableBody>
-                {filteredItems.map((item, index) => {
+                {items.map((item, index) => {
                   const statusStyle = getMenuItemStatusStyle(item.status);
+                  const image = item.images?.[0];
 
                   return (
                     <TableRow key={item._id}>
-                      {/* Left — item info */}
                       <TableCell className="py-3 pl-4 align-middle whitespace-normal">
                         <div className="flex min-w-0 items-center gap-3">
-                          {/* Thumbnail */}
                           <div
                             className={cn(
                               "flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg",
                               thumbTints[index % thumbTints.length],
                             )}
                           >
-                            {item.images[0] ? (
+                            {image ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
-                                src={item.images[0]}
+                                src={image}
                                 alt={item.itemName}
                                 loading="lazy"
                                 className="size-full object-cover"
@@ -182,7 +150,6 @@ const MenuItemsManager = ({ menuItems }: MenuItemsManagerProps) => {
                             )}
                           </div>
 
-                          {/* Details */}
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-heading truncate text-sm font-semibold">
@@ -217,7 +184,9 @@ const MenuItemsManager = ({ menuItems }: MenuItemsManagerProps) => {
                                   aria-hidden="true"
                                 />
                                 <span className="max-w-40 truncate">
-                                  {item.vendorEmail || "Local Pizzeria"}
+                                  {item.vendorName ||
+                                    item.vendorEmail ||
+                                    "Unknown vendor"}
                                 </span>
                               </span>
                             </div>
@@ -225,7 +194,6 @@ const MenuItemsManager = ({ menuItems }: MenuItemsManagerProps) => {
                         </div>
                       </TableCell>
 
-                      {/* Status capsule */}
                       <TableCell className="py-3 align-middle">
                         <StatusCapsule
                           label={statusStyle.label}
@@ -233,12 +201,10 @@ const MenuItemsManager = ({ menuItems }: MenuItemsManagerProps) => {
                         />
                       </TableCell>
 
-                      {/* Location */}
                       <TableCell className="text-muted-foreground hidden py-3 align-middle text-xs lg:table-cell">
                         {item.location}
                       </TableCell>
 
-                      {/* Right — actions */}
                       <TableCell className="py-3 pr-4 align-middle">
                         <MenuItemRowActions item={item} />
                       </TableCell>
@@ -247,6 +213,31 @@ const MenuItemsManager = ({ menuItems }: MenuItemsManagerProps) => {
                 })}
               </TableBody>
             </Table>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="border-border flex items-center justify-between gap-3 border-t px-4 py-3 text-sm">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => goToPage(page - 1)}
+                  className="border-input hover:bg-accent rounded-lg border px-3 py-1.5 disabled:opacity-50"
+                >
+                  আগের পাতা
+                </button>
+                <span className="text-muted-foreground text-xs">
+                  {page} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={page >= totalPages}
+                  onClick={() => goToPage(page + 1)}
+                  className="border-input hover:bg-accent rounded-lg border px-3 py-1.5 disabled:opacity-50"
+                >
+                  পরের পাতা
+                </button>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -267,22 +258,9 @@ const MenuItemsManager = ({ menuItems }: MenuItemsManagerProps) => {
 
           <p className="text-muted-foreground mt-2 max-w-sm text-sm">
             {hasFilters
-              ? "No items match your search. Try a different name, status, or category."
-              : "There are no menu items to show right now. Check back later."}
+              ? "কোনো item মিলছে না। Filter বদলে আবার চেষ্টা করুন।"
+              : "এখন দেখানোর মতো কোনো menu item নেই।"}
           </p>
-
-          {hasFilters && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={resetFilters}
-              className="mt-4"
-            >
-              <RotateCcw aria-hidden="true" />
-              Clear filters
-            </Button>
-          )}
         </div>
       )}
     </>
