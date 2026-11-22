@@ -8,6 +8,11 @@ const client = new MongoClient(uri as string);
 const db = client.db('PizzaHub');
 
 export const auth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL,
+  trustedOrigins: [
+    "http://localhost:3000",
+    'https://pizza-hub-black.vercel.app'
+  ],
   database: mongodbAdapter(db, {
     client,
   }),
