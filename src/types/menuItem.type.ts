@@ -8,7 +8,9 @@ export const MENU_CATEGORIES = [
 ] as const;
 
 export type MenuCategory = (typeof MENU_CATEGORIES)[number];
-export type MenuItemStatus = "pending" | "approved" | "rejected" | "inactive";
+
+// Backend এ inactive আলাদা status নয়। Approved item এর active:false মানে inactive।
+export type MenuItemStatus = "pending" | "approved" | "rejected";
 
 export interface IMenuItem {
   _id: string;
@@ -27,7 +29,6 @@ export interface IMenuItem {
   updatedAt?: string;
 }
 
-/** Create/update এ যা পাঠানো হয়। status, active, vendorId server ঠিক করে। */
 export type MenuItemInput = Pick<
   IMenuItem,
   "itemName" | "category" | "description" | "price" | "location" | "images"

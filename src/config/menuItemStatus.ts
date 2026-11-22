@@ -1,13 +1,8 @@
-import type { MenuItemStatus } from "@/types/menuItem.type";
+import type { IMenuItem, MenuItemStatus } from "@/types/menuItem.type";
 
-/**
- * Visual style per menu item status — the status capsule shown on vendor
- * cards and in the admin review table. Shared so both surfaces match.
- */
-export const menuItemStatusStyles: Record<
-  MenuItemStatus,
-  { label: string; className: string }
-> = {
+type StatusStyle = { label: string; className: string };
+
+const STYLES: Record<MenuItemStatus, StatusStyle> = {
   pending: {
     label: "Pending",
     className: "bg-warning/10 text-warning ring-warning/30",
@@ -22,6 +17,25 @@ export const menuItemStatusStyles: Record<
   },
 };
 
-/** Resolves an item's status (defaulting to pending) to its capsule style. */
-export const getMenuItemStatusStyle = (status?: MenuItemStatus) =>
-  menuItemStatusStyles[status ?? "pending"] ?? menuItemStatusStyles.pending;
+const INACTIVE_STYLE: StatusStyle = {
+  label: "Inactive",
+  className: "bg-muted text-muted-foreground ring-border",
+};
+
+/**
+ * Status capsule style। Approved item যদি active না থাকে, তবে "Inactive" দেখাবে।
+ * Backend এ inactive আলাদা status নয়, approved + active:false।
+ */
+export const getMenuItemStatusStyle = (
+  item: Pick<IMenuItem, "status" | "active"> | MenuItemStatus | undefined,
+): StatusStyle => {
+  if (typeof item === "object" && item !== null) {
+    const status = item.status ?? "pending";
+    if (status === "approved" && item.active !== true) return INACTIVE_STYLE;
+    return STYLES[status] ?? STYLES.pending;
+  }
+
+  return STYLES[item ?? "pending"] ?? STYLES.pending;
+};
+
+export const menuItemStatusStyles = STYLES;
