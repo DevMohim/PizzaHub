@@ -14,6 +14,7 @@ import { getAllUser } from "@/lib/api/users";
 import { getMenuItems } from "@/lib/api/menuItems";
 import { IUser } from "@/types/user.type";
 import { IMenuItem } from "@/types/menuItem.type";
+import { getTokenFromServer } from "@/lib/getTokenFromServer";
 
 
 const quickLinks = [
@@ -68,7 +69,8 @@ function StatCard({
 }
 
 export default async function AdminOverviewPage() {
-   const users : IUser[] = await getAllUser()
+  const token = await getTokenFromServer()
+   const users : IUser[] = await getAllUser(token)
    const menuItems :IMenuItem[] = await getMenuItems()
 
    const vendors = users.filter(user => user.role === 'vendor')
