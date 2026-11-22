@@ -13,8 +13,9 @@ export class ApiError extends Error {
 }
 
 type ApiOptions = Omit<RequestInit, "headers"> & {
+  /** false হলে token পাঠানো হবে না (public route) */
   auth?: boolean;
-  /** Server Component থেকে দিলে এটি ব্যবহার হবে */
+  /** Server Component থেকে call করলে token এখানে দিতে হবে */
   token?: string;
   headers?: Record<string, string>;
 };
@@ -27,13 +28,15 @@ export const apiFetch = async <T = unknown>(
     throw new Error("NEXT_PUBLIC_API_URL is not set.");
   }
 
-  const token =
-    givenToken ??
-    (auth && typeof window !== "undefined"
-      ? await getTokenFromClient()
-      : undefined);
+  // Server এ window নেই, তাই token না দিলে browser session থেকে নেওয়া হবে
+  let token = givenToken;
+  if (!token && auth && typeof window !== "undefined") {
+    token = await getTokenFromClient();
+  }
 
-      console.log('token' , token)
+  if (auth && !token) {
+    throw new ApiError(`Login করা নেই: ${path}`, 401);
+  }
 
   const hasBody = rest.body !== undefined;
 
@@ -44,12 +47,9 @@ export const apiFetch = async <T = unknown>(
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
-    cache: "no-store",
   });
-  console.log('respose ' , res)
 
   const body = await res.json().catch(() => ({}));
-  console.log(res, "respose")
 
   if (!res.ok) {
     throw new ApiError(
