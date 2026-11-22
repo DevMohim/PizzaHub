@@ -15,6 +15,8 @@ import { getMenuItems } from "@/lib/api/menuItems";
 import { IUser } from "@/types/user.type";
 import { IMenuItem } from "@/types/menuItem.type";
 import { getTokenFromServer } from "@/lib/getTokenFromServer";
+import { ITransaction } from "@/types/transaction.type";
+import { getAllTransaction } from "@/lib/api/transaction";
 
 
 const quickLinks = [
@@ -72,6 +74,7 @@ export default async function AdminOverviewPage() {
   const token = await getTokenFromServer()
    const users : IUser[] = await getAllUser(token)
    const menuItems :IMenuItem[] = await getMenuItems()
+   const transaction : ITransaction[] = await getAllTransaction(token)
 
    const vendors = users.filter(user => user.role === 'vendor')
    const customers = users.filter(user => user.role === 'customer')
@@ -110,7 +113,7 @@ export default async function AdminOverviewPage() {
      },
      {
        label: "Transactions",
-      value: 20,
+      value: transaction.length,
        icon: Receipt,
        tone: "bg-stone-200 text-stone-700",
      },

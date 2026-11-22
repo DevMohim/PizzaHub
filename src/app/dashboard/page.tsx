@@ -20,6 +20,9 @@ export default async function DashboardRedirect() {
     case "customer":
       redirect("/dashboard/customer");
 
+    case "admin":
+      redirect('/dashboard/admin')
+
     default:
       redirect("/");
   }
