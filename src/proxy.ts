@@ -1,3 +1,5 @@
+import dns from "node:dns";
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -15,5 +17,11 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/browse-menu/:id", "/dashboard", "/dashboard/:role/settings" ,'/payment/success' ,'/payment/cancel'], // Specify the routes the middleware applies to
+  matcher: [
+    "/browse-menu/:id",
+    "/dashboard",
+    "/dashboard/:role/settings",
+    "/payment/success",
+    "/payment/cancel",
+  ], // Specify the routes the middleware applies to
 };

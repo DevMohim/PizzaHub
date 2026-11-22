@@ -1,3 +1,5 @@
+import dns from "node:dns";
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
@@ -5,7 +7,7 @@ import { Toaster } from "react-hot-toast";
 import Navbar from "@/components/layout/Navbar";
 import { CartProvider } from "@/lib/cart-context";
 import "./globals.css";
-import { MotionConfig } from "motion/react";
+
 import MotionProvider from "@/components/MotionProvider";
 
 const inter = Inter({
