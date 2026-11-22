@@ -7,10 +7,20 @@ export default async function DashboardRedirect() {
     headers: await headers(),
   });
 
-  if (!session) redirect("/login");
+  if (!session) {
+    redirect("/login");
+  }
 
   const role = (session.user as { role?: string }).role;
 
-  if (role === "vendor") redirect("/dashboard/vendor");
-  redirect("/dashboard/customer");
+  switch (role) {
+    case "vendor":
+      redirect("/dashboard/vendor");
+
+    case "customer":
+      redirect("/dashboard/customer");
+
+    default:
+      redirect("/");
+  }
 }

@@ -65,6 +65,7 @@ function LoginForm() {
 
       toast.success("Signed in successfully!");
       router.push("/dashboard");
+      router.refresh();;
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
