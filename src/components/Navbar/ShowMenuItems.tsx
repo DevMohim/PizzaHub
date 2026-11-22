@@ -2,12 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  LayoutDashboard,
-  LogOut,
-  User,
-} from "lucide-react";
-import { toast } from "react-hot-toast";
+import { LayoutDashboard, LogOut, User } from "lucide-react";
+import toast from "react-hot-toast";
 import {
   Popover,
   PopoverContent,
@@ -20,11 +16,20 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { signOut } from "@/lib/auth-client";
-import { TSessionUser } from "@/types/user.type";
-import { cn } from "cn";
+import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
+import type { UserRole } from "@/types/user.type";
 
-const menuItems = (role: TSessionUser["role"]) => [
+interface ShowMenuItemsProps {
+  user: {
+    name: string;
+    email: string;
+    image?: string | null;
+    role: UserRole;
+  };
+}
+
+const getMenuLinks = (role: UserRole) => [
   {
     name: "Dashboard",
     url: `/dashboard/${role}`,
@@ -34,21 +39,22 @@ const menuItems = (role: TSessionUser["role"]) => [
     name: "Profile",
     url: `/dashboard/${role}/settings`,
     icon: User,
-  }
+  },
 ];
 
-const ShowMenuItems = ({ user }: { user: TSessionUser }) => {
+const ShowMenuItems = ({ user }: ShowMenuItemsProps) => {
   const router = useRouter();
+  const initial = user.name?.charAt(0).toUpperCase() ?? "?";
 
   const handleLogout = async () => {
-    const { error } = await signOut();
-    if (error) {
-      toast.error(error.message ?? "Failed to log out");
-      return;
+    try {
+      await authClient.signOut();
+      toast.success("Logged out successfully");
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to log out");
     }
-    toast.success("Logged out successfully");
-    router.push("/");
-    router.refresh();
   };
 
   return (
@@ -57,10 +63,10 @@ const ShowMenuItems = ({ user }: { user: TSessionUser }) => {
         nativeButton={false}
         aria-label="Open profile menu"
         render={
-          <Avatar className="ring-ring/20 hover:ring-ring/50 cursor-pointer ring-2 transition-shadow">
+          <Avatar className="ring-ring/20 hover:ring-ring/50 ring-2 cursor-pointer transition-shadow">
             <AvatarImage src={user.image || undefined} alt={user.name} />
             <AvatarFallback className="font-heading text-sm font-semibold">
-              {user.name.charAt(0).toUpperCase()}
+              {initial}
             </AvatarFallback>
             <AvatarBadge className="bg-success size-2.5" />
           </Avatar>
@@ -68,12 +74,11 @@ const ShowMenuItems = ({ user }: { user: TSessionUser }) => {
       />
 
       <PopoverContent align="end" className="w-64 p-0">
-        {/* User info */}
         <div className="flex items-center gap-3 px-4 pt-3.5 pb-3">
           <Avatar className="size-10">
             <AvatarImage src={user.image || undefined} alt={user.name} />
             <AvatarFallback className="font-heading text-sm font-semibold">
-              {user.name.charAt(0).toUpperCase()}
+              {initial}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
@@ -84,24 +89,22 @@ const ShowMenuItems = ({ user }: { user: TSessionUser }) => {
               {user.email}
             </p>
           </div>
-          <span className="bg-accent text-primary shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide">
+          <span className="bg-accent text-primary shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase">
             {user.role}
           </span>
         </div>
 
         <Separator />
 
-        {/* Menu links */}
         <ul className="p-1.5">
-          {menuItems(user.role).map((item) => {
+          {getMenuLinks(user.role).map((item) => {
             const Icon = item.icon;
             return (
               <li key={item.name}>
                 <Link
                   href={item.url}
                   className={cn(
-                    "hover:bg-muted flex items-center gap-2.5 rounded-md px-3 py-2 text-sm",
-                    "text-foreground/80 hover:text-foreground transition-colors"
+                    "hover:bg-muted text-foreground/80 hover:text-foreground flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
                   )}
                 >
                   <Icon className="text-muted-foreground size-4" />
@@ -110,14 +113,12 @@ const ShowMenuItems = ({ user }: { user: TSessionUser }) => {
               </li>
             );
           })}
+
           <li>
             <button
               type="button"
               onClick={handleLogout}
-              className={cn(
-                "hover:bg-destructive/10 flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
-                "text-destructive"
-              )}
+              className="hover:bg-destructive/10 text-destructive flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors"
             >
               <LogOut className="size-4" />
               <span className="font-heading font-medium">Logout</span>

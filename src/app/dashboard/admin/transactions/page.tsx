@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import {
   BadgeCheck,
   CalendarDays,
@@ -40,20 +41,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getAllTransaction } from "@/lib/api/transaction";
-import { getAllUser } from "@/lib/api/users";
-import {
-  ITransaction,
-  ITransactionVendor,
-  MongoDateValue,
-  MongoObjectId,
-} from "@/types/transaction.type";
-import { IUser } from "@/types/user.type";
-import { cn } from "cn";
 import { getTokenFromServer } from "@/lib/getTokenFromServer";
+import { getMyProfile, getAllUser } from "@/lib/api/users";
+import { getAllTransaction } from "@/lib/api/transaction";
+import type { ITransaction } from "@/types/transaction.type";
+import type { IUser } from "@/types/user.type";
+import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
-/*  Formatting helpers                                                 */
+/*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
 const transactionStatusStyles: Record<
@@ -97,23 +93,10 @@ const getStatusStyle = (status?: string) => {
   );
 };
 
-/** Reads a plain ISO string or an extended-JSON `{ $date }` value. */
-const parseDate = (value?: MongoDateValue | null) => {
+const parseDate = (value?: string | null) => {
   if (!value) return null;
-
-  const raw = typeof value === "string" ? value : value.$date;
-  const date = new Date(raw);
-
+  const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
-};
-
-/** Reads a plain ObjectId string or an extended-JSON `{ $oid }` value. */
-const resolveId = (value?: MongoObjectId | { _id?: string } | null) => {
-  if (!value) return "";
-  if (typeof value === "string") return value;
-  if ("$oid" in value && value.$oid) return value.$oid;
-  if ("_id" in value && value._id) return value._id;
-  return "";
 };
 
 const formatDate = (date: Date) =>
@@ -199,7 +182,7 @@ const PlanBadge = ({ plan }: { plan?: string }) =>
   plan?.toLowerCase() === "premium" ? (
     <Badge
       variant="outline"
-      className="gap-1 border-secondary/40 bg-secondary/10 font-heading text-secondary"
+      className="border-secondary/40 bg-secondary/10 font-heading text-secondary gap-1"
     >
       <Crown aria-hidden="true" />
       Premium
@@ -215,21 +198,33 @@ const PlanBadge = ({ plan }: { plan?: string }) =>
 /* ------------------------------------------------------------------ */
 
 const TransactionPage = async () => {
+  const token = await getTokenFromServer();
+
+  if (!token) {
+    redirect("/sign-in");
+  }
+
+  const profile = await getMyProfile(token);
+
+  if (profile.role !== "admin") {
+    redirect("/");
+  }
+
   let transactions: ITransaction[] = [];
   let users: IUser[] = [];
   let loadError: string | null = null;
 
   try {
-    const token = await getTokenFromServer()
     const [transactionData, userData] = await Promise.all([
-      getAllTransaction(token) as Promise<ITransaction[]>,
-      // Vendor details are only used to enrich the table — never block it.
-      getAllUser(token).catch(() => [] as IUser[]),
+      getAllTransaction(token),
+      // Vendor details শুধু table সাজানোর জন্য, এটি fail করলেও transaction দেখাবে
+      getAllUser({}, token).catch(() => [] as IUser[]),
     ]);
 
     transactions = Array.isArray(transactionData) ? transactionData : [];
     users = Array.isArray(userData) ? userData : [];
   } catch (error) {
+    console.error("[admin/transactions] load failed:", error);
     loadError =
       error instanceof Error
         ? error.message
@@ -244,29 +239,25 @@ const TransactionPage = async () => {
     return dateB - dateA;
   });
 
+  const statusOf = (t: ITransaction) => t.status?.toLowerCase();
+
   const paidTransactions = sortedTransactions.filter(
-    (transaction) => transaction.status?.toLowerCase() === "paid",
+    (t) => statusOf(t) === "paid",
   );
   const pendingTransactions = sortedTransactions.filter(
-    (transaction) => transaction.status?.toLowerCase() === "pending",
+    (t) => statusOf(t) === "pending",
   );
-  const attentionTransactions = sortedTransactions.filter((transaction) => {
-    const status = transaction.status?.toLowerCase();
+  const attentionTransactions = sortedTransactions.filter((t) => {
+    const status = statusOf(t);
     return status === "failed" || status === "refunded";
   });
 
-  const totalCollected = paidTransactions.reduce(
-    (sum, transaction) => sum + Number(transaction.amount ?? 0),
-    0,
-  );
-  const pendingAmount = pendingTransactions.reduce(
-    (sum, transaction) => sum + Number(transaction.amount ?? 0),
-    0,
-  );
-  const attentionAmount = attentionTransactions.reduce(
-    (sum, transaction) => sum + Number(transaction.amount ?? 0),
-    0,
-  );
+  const sumAmount = (list: ITransaction[]) =>
+    list.reduce((sum, t) => sum + Number(t.amount ?? 0), 0);
+
+  const totalCollected = sumAmount(paidTransactions);
+  const pendingAmount = sumAmount(pendingTransactions);
+  const attentionAmount = sumAmount(attentionTransactions);
   const summaryCurrency = paidTransactions[0]?.currency ?? "usd";
 
   const latestDate = sortedTransactions[0]
@@ -317,19 +308,19 @@ const TransactionPage = async () => {
   return (
     <div className="w-full px-4 py-8 md:px-6">
       {/* Header */}
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <section className="border-border bg-card relative overflow-hidden rounded-2xl border p-5 shadow-sm sm:p-6">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -top-20 -right-16 size-52 rounded-full bg-secondary/10 blur-2xl"
+          className="bg-secondary/10 pointer-events-none absolute -top-20 -right-16 size-52 rounded-full blur-2xl"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -bottom-24 left-1/3 size-48 rounded-full bg-primary/10 blur-3xl"
+          className="bg-primary/10 pointer-events-none absolute -bottom-24 left-1/3 size-48 rounded-full blur-3xl"
         />
 
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-4">
-            <span className="hidden size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 sm:flex">
+            <span className="bg-primary/10 text-primary ring-primary/20 hidden size-12 shrink-0 items-center justify-center rounded-xl ring-1 sm:flex">
               <Receipt className="size-6" aria-hidden="true" />
             </span>
 
@@ -348,20 +339,22 @@ const TransactionPage = async () => {
               </div>
               <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
                 Review vendor subscription payments verified through Stripe.
-                Payment records can’t be edited or marked successful from this
-                dashboard.
+                Payment records can&apos;t be edited or marked successful from
+                this dashboard.
               </p>
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-3 rounded-xl border border-border bg-muted/30 px-3.5 py-2.5">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-success/10 text-success">
+          <div className="border-border bg-muted/30 flex shrink-0 items-center gap-3 rounded-xl border px-3.5 py-2.5">
+            <span className="bg-success/10 text-success flex size-8 items-center justify-center rounded-lg">
               <RefreshCw className="size-4" aria-hidden="true" />
             </span>
             <div className="text-xs leading-tight">
               <p className="font-medium">Stripe verified</p>
               <p className="text-muted-foreground">
-                {latestDate ? `Latest ${formatDate(latestDate)}` : "No payments yet"}
+                {latestDate
+                  ? `Latest ${formatDate(latestDate)}`
+                  : "No payments yet"}
               </p>
             </div>
           </div>
@@ -376,7 +369,7 @@ const TransactionPage = async () => {
                 <EmptyMedia variant="icon">
                   <CircleX aria-hidden="true" />
                 </EmptyMedia>
-                <EmptyTitle>Couldn’t load transactions</EmptyTitle>
+                <EmptyTitle>Couldn&apos;t load transactions</EmptyTitle>
                 <EmptyDescription>{loadError}</EmptyDescription>
               </EmptyHeader>
             </Empty>
@@ -393,7 +386,7 @@ const TransactionPage = async () => {
 
           {sortedTransactions.length > 0 ? (
             <Card className="mt-5 gap-0 overflow-hidden rounded-2xl py-0 shadow-sm">
-              <CardHeader className="border-b border-border py-4">
+              <CardHeader className="border-border border-b py-4">
                 <CardTitle className="text-base">Payment history</CardTitle>
                 <CardDescription>
                   Server-verified vendor subscription transactions.
@@ -418,8 +411,8 @@ const TransactionPage = async () => {
                 </CardAction>
               </CardHeader>
 
-              {/* Toolbar */}
-              <div className="flex flex-col gap-3 border-b border-border px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+              {/* Toolbar: এখন static, filter চাইলে পরের ধাপে URL দিয়ে যুক্ত করা যাবে */}
+              <div className="border-border flex flex-col gap-3 border-b px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="relative w-full lg:max-w-xs">
                   <Search
                     aria-hidden="true"
@@ -430,7 +423,7 @@ const TransactionPage = async () => {
                     readOnly
                     aria-label="Search vendor or transaction ID"
                     placeholder="Search vendor or transaction ID"
-                    className="h-9 w-full rounded-lg border border-input bg-background pr-3 pl-9 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20"
+                    className="border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/20 h-9 w-full rounded-lg border pr-3 pl-9 text-sm shadow-xs outline-none transition focus-visible:ring-3"
                   />
                 </div>
 
@@ -443,7 +436,7 @@ const TransactionPage = async () => {
                           "inline-flex h-8 items-center rounded-full px-3 text-xs font-medium whitespace-nowrap",
                           index === 0
                             ? "bg-primary text-primary-foreground shadow-sm"
-                            : "border border-border bg-background text-muted-foreground",
+                            : "border-border bg-background text-muted-foreground border",
                         )}
                       >
                         {filter}
@@ -451,7 +444,7 @@ const TransactionPage = async () => {
                     ))}
                   </div>
 
-                  <span className="text-muted-foreground inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-xs font-medium whitespace-nowrap">
+                  <span className="text-muted-foreground border-border bg-background inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium whitespace-nowrap">
                     <CalendarDays className="size-3.5" aria-hidden="true" />
                     {latestDate ? formatMonth(latestDate) : "All time"}
                     <ChevronDown className="size-3.5" aria-hidden="true" />
@@ -490,34 +483,25 @@ const TransactionPage = async () => {
                   <TableBody>
                     {sortedTransactions.map((transaction, index) => {
                       const statusStyle = getStatusStyle(transaction.status);
-                      const vendorId = resolveId(transaction.vendorId);
-                      const vendorRef: ITransactionVendor | null =
-                        typeof transaction.vendorId === "object"
-                          ? transaction.vendorId
-                          : null;
-                      const vendor = vendorId
-                        ? usersById.get(vendorId)
-                        : undefined;
+                      const vendor = usersById.get(transaction.vendorId);
 
                       const vendorName =
-                        vendor?.businessName ??
-                        vendor?.name ??
-                        vendorRef?.businessName ??
-                        vendorRef?.name ??
+                        vendor?.businessName ||
+                        vendor?.name ||
+                        transaction.vendorEmail ||
                         "Unknown vendor";
                       const vendorEmail =
                         vendor?.email ??
-                        vendorRef?.email ??
-                        (vendorId ? `#${vendorId.slice(0, 8)}` : "No vendor reference");
-                      const vendorImage = vendor?.image ?? vendorRef?.image;
+                        transaction.vendorEmail ??
+                        `#${transaction.vendorId.slice(0, 8)}`;
+                      const vendorImage = vendor?.image ?? undefined;
+
                       const transactionRef =
-                        transaction.stripeSessionId ||
-                        resolveId(transaction._id) ||
-                        "—";
+                        transaction.stripeSessionId || transaction._id || "—";
                       const createdDate = parseDate(transaction.createdAt);
 
                       return (
-                        <TableRow key={resolveId(transaction._id)}>
+                        <TableRow key={transaction._id}>
                           {/* Vendor */}
                           <TableCell className="py-3 pl-4 align-middle whitespace-normal">
                             <div className="flex min-w-0 items-center gap-3">
@@ -578,10 +562,10 @@ const TransactionPage = async () => {
                             />
                           </TableCell>
 
-                          {/* Stripe session */}
+                          {/* Stripe session / transaction id */}
                           <TableCell className="py-3 align-middle">
                             <span
-                              title={`Transaction ${resolveId(transaction._id)}`}
+                              title={`Transaction ${transaction._id}`}
                               className="text-muted-foreground block max-w-44 truncate font-mono text-xs"
                             >
                               {transactionRef}
@@ -606,10 +590,10 @@ const TransactionPage = async () => {
                             )}
                           </TableCell>
 
-                          {/* Action */}
+                          {/* View (read-only) */}
                           <TableCell className="py-3 pr-4 text-right align-middle">
                             <span
-                              className="text-muted-foreground inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background"
+                              className="text-muted-foreground border-border bg-background inline-flex size-8 items-center justify-center rounded-lg border"
                               aria-hidden="true"
                             >
                               <Eye className="size-4" />
@@ -622,7 +606,7 @@ const TransactionPage = async () => {
                 </Table>
               </CardContent>
 
-              <CardFooter className="flex flex-col gap-3 border-t border-border bg-muted/30 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardFooter className="border-border bg-muted/30 flex flex-col gap-3 border-t py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-muted-foreground text-xs">
                   Showing{" "}
                   <span className="text-foreground font-medium">
@@ -640,7 +624,7 @@ const TransactionPage = async () => {
               </CardFooter>
             </Card>
           ) : (
-            <Empty className="mt-5 rounded-2xl border-border bg-muted/20 py-14">
+            <Empty className="border-border bg-muted/20 mt-5 rounded-2xl py-14">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <Receipt aria-hidden="true" />
@@ -657,9 +641,9 @@ const TransactionPage = async () => {
       )}
 
       {/* Read-only note */}
-      <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs">
+      <div className="border-border bg-muted/30 mt-4 flex items-start gap-2.5 rounded-xl border px-4 py-3 text-xs">
         <Info
-          className="mt-0.5 size-4 shrink-0 text-secondary"
+          className="text-secondary mt-0.5 size-4 shrink-0"
           aria-hidden="true"
         />
         <p className="text-muted-foreground">
@@ -667,7 +651,8 @@ const TransactionPage = async () => {
             Read-only records.
           </span>{" "}
           Subscription payments are confirmed by server-verified Stripe
-          webhooks. Admins can’t edit transactions or mark a payment successful.
+          webhooks. Admins can&apos;t edit transactions or mark a payment
+          successful.
         </p>
       </div>
     </div>

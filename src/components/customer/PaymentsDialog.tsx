@@ -1,39 +1,42 @@
 "use client";
+
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { cn } from "cn";
-import { buttonVariants } from "../ui/button";
-import { ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { createOrder } from "@/lib/api/orders";
 import { useSession } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
-import { createOrder } from "@/lib/actions/orders";
-import { IOrder } from "@/types/order.type";
+import type { CreateOrderInput } from "@/types/order.type";
 
 export interface OrderFormErrors {
   deliveryDate?: string;
   deliveryAddress?: string;
 }
 
-interface DialogProps {
-  orderData: IOrder;
+interface PaymentsDialogProps {
+  orderData: CreateOrderInput;
+  itemName: string;
+  price: number;
   onValidationFail: (errors: OrderFormErrors) => void;
 }
 
-const inputClass =
-  "h-11 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground " +
-  "placeholder:text-muted-foreground/60 outline-none transition-shadow " +
-  "focus:border-transparent focus:ring-2 focus:ring-[#635bff]/40";
-
-const labelClass = "mb-1.5 block text-sm font-medium text-foreground";
-
-const PaymentsDialog = ({ orderData, onValidationFail }: DialogProps) => {
+const PaymentsDialog = ({
+  orderData,
+  itemName,
+  price,
+  onValidationFail,
+}: PaymentsDialogProps) => {
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { data: session } = useSession();
   const user = session?.user;
   const router = useRouter();
@@ -48,130 +51,105 @@ const PaymentsDialog = ({ orderData, onValidationFail }: DialogProps) => {
       errors.deliveryAddress = "Delivery address is required";
     }
 
-    if (Object.keys(errors).length > 0) {
-      onValidationFail(errors);
+    onValidationFail(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    if (!user) {
+      router.push("/sign-in");
       return;
     }
 
-    onValidationFail({});
+    if (user.role !== "customer") {
+      toast.error(`${user.role?.toUpperCase() ?? "User"} cannot place orders`);
+      return;
+    }
+
     setOpen(true);
   };
 
-  const handleOrder = async () => {
-    if (!user) {
-      router.push("/login");
-      return;
-    }
+  const handleConfirm = async () => {
+    setIsSubmitting(true);
 
-    if (user.role === "vendor" || user.role === "admin") {
-      toast.error(`${user.role.toUpperCase()} isn't able to order items`);
-      return;
+    try {
+      await createOrder(orderData);
+      toast.success("Order placed successfully. Waiting for vendor approval.");
+      setOpen(false);
+      router.push("/dashboard/customer/orders");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not place order",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    await createOrder(orderData);
-    toast.success("Payment Successful, your order is confirmed");
-    setOpen(false);
-    router.push(`/dashboard/customer/orders`);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <button
+    <>
+      <Button
         type="button"
+        size="lg"
         onClick={handleOpen}
-        className={cn(
-          buttonVariants({ size: "lg" }),
-          "h-11 w-full bg-(image:--gradient-primary) text-white hover:opacity-90 cursor-pointer",
-        )}
+        className="h-11 w-full cursor-pointer bg-(image:--gradient-primary) text-white hover:opacity-90"
       >
-        Order Now ${orderData.totalAmount}
-      </button>
+        Place Order · ${price.toFixed(2)}
+      </Button>
 
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
-        <DialogHeader className="border-b bg-muted/40 px-6 py-5 text-left">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-base font-semibold">
-              Pay with card
-            </DialogTitle>
-          </div>
-          <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
-            ${orderData.totalAmount.toFixed(2)}
-          </p>
-        </DialogHeader>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm your order</DialogTitle>
+            <DialogDescription>
+              Your order for {itemName} will be sent to the vendor for approval.
+              Payment is not required at this step.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4 px-6 py-5">
-          <div>
-            <label htmlFor="card-number" className={labelClass}>
-              Card number
-            </label>
-            <div className="relative">
-              <input
-                id="card-number"
-                inputMode="numeric"
-                autoComplete="off"
-                placeholder="1234 1234 1234 1234"
-                className={cn(inputClass, "pr-24")}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="card-name" className={labelClass}>
-              Card Holder Name
-            </label>
-            <input
-              id="card-name"
-              autoComplete="off"
-              placeholder="Full name"
-              className={inputClass}
-            />
+          <div className="space-y-2 text-sm">
+            <p>
+              <span className="text-muted-foreground">Delivery date: </span>
+              {orderData.deliveryDate}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Address: </span>
+              {orderData.deliveryAddress}
+            </p>
+            {orderData.message ? (
+              <p>
+                <span className="text-muted-foreground">Note: </span>
+                {orderData.message}
+              </p>
+            ) : null}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="card-expiry" className={labelClass}>
-                Expiry Date
-              </label>
-              <input
-                id="card-expiry"
-                inputMode="numeric"
-                autoComplete="off"
-                placeholder="MM / YY"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label htmlFor="card-cvc" className={labelClass}>
-                CVC
-              </label>
-              <input
-                id="card-cvc"
-                inputMode="numeric"
-                autoComplete="off"
-                placeholder="123"
-                maxLength={4}
-                className={inputClass}
-              />
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleOrder}
-            className={cn(
-              buttonVariants({ size: "lg" }),
-              "h-11 w-full bg-(image:--gradient-primary) text-white hover:opacity-90 cursor-pointer",
-            )}
-          >
-            Pay Now ${orderData.totalAmount.toFixed(2)}
-          </button>
-          <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-            <ShieldCheck className="size-3.5" />
-            Payments are encrypted and processed securely
-          </p>
-        </div>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirm}
+              disabled={isSubmitting}
+              className="bg-(image:--gradient-primary) text-white hover:opacity-90"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  Placing order...
+                </>
+              ) : (
+                "Confirm order"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

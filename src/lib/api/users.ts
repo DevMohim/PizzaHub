@@ -9,8 +9,10 @@ export interface UserQuery {
 }
 
 // Admin: user list with optional name/email search, role and status filters
-export const getAllUser = (token?: string, params: UserQuery = {}) =>
-  apiFetch<IUser[]>(withQuery("/api/users", params), { token });
+export const getAllUser = (
+  params: { role?: "customer" | "vendor"; search?: string } = {},
+  token?: string,
+) => apiFetch<IUser[]>(withQuery("/api/users", params), { token });
 
 // Backend এ এই route email দিয়ে খোঁজে
 export const getUserByEmail = async (email: string) => {

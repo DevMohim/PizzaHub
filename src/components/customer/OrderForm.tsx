@@ -1,20 +1,24 @@
 "use client";
-import { Minus, Plus, ShieldCheck, ShoppingBag } from "lucide-react";
-import { IMenuItem } from "@/types/menuItem.type";
-import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
-import { Input } from "../ui/input";
-import { useState } from "react";
-import AddToBagButton from "../browse/AddToBagButton";
-import { useSession } from "@/lib/auth-client";
-import PaymentsDialog, { OrderFormErrors } from "./PaymentsDialog";
-import { cn } from "cn";
 
-interface OrderFormType {
+import { useState } from "react";
+import { Minus, Plus, ShieldCheck, ShoppingBag } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import type { IMenuItem } from "@/types/menuItem.type";
+import type { CreateOrderInput } from "@/types/order.type";
+import AddToBagButton from "@/components/browse/AddToBagButton";
+import PaymentsDialog, {
+  type OrderFormErrors,
+} from "@/components/customer/PaymentsDialog";
+import { useSession } from "@/lib/auth-client";
+
+interface OrderFormProps {
   item: IMenuItem;
 }
 
-const OrderForm = ({ item }: OrderFormType) => {
+const OrderForm = ({ item }: OrderFormProps) => {
   const [deliveryDate, setDeliveryDate] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [message, setMessage] = useState("");
@@ -23,42 +27,36 @@ const OrderForm = ({ item }: OrderFormType) => {
   const { data: session } = useSession();
   const user = session?.user;
 
-  const totalAmount = quantity * Number(item.price ?? 0);
+  const price = Number(item.price ?? 0);
+  const image = item.images?.[0] ?? "";
+  const totalAmount = quantity * price;
 
-  const orderData = {
-    itemId: item._id as string,
-    itemName: item.itemName,
-    itemImage: item.imageUrl,
-    itemCategory: item.category ?? "",
-    vendorEmail: item.userEmail ?? "",
-    price: Number(item.price ?? 0),
-    quantity,
-    totalAmount,
+  // Backend শুধু এই চারটি field নেয়
+  const orderData: CreateOrderInput = {
+    itemId: item._id,
     deliveryDate,
-    deliveryAddress,
-    message,
-    userName: user?.name ?? "",
-    userEmail: user?.email ?? "",
+    deliveryAddress: deliveryAddress.trim(),
+    message: message.trim(),
   };
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-5 shadow-xs">
+    <section className="border-border bg-card rounded-2xl border p-5 shadow-xs">
       <h2 className="font-heading flex items-center gap-2 text-lg font-semibold">
         <ShoppingBag className="text-primary size-5" aria-hidden="true" />
         Place an Order
       </h2>
 
       <div className="mt-4 space-y-4">
-        <form className="mt-4 space-y-4" onSubmit={(e) => e.preventDefault()}>
-          {/* Quantity */}
+        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+          {/* Quantity: শুধু UI, backend এখনো এক order এ এক item নেয় */}
           <div className="space-y-2">
-            <Label htmlFor="quantity">Quantity</Label>
-            <div className="flex h-10 w-36 items-center justify-between rounded-lg border border-input px-1">
+            <Label>Quantity</Label>
+            <div className="border-input flex h-10 w-36 items-center justify-between rounded-lg border px-1">
               <button
                 type="button"
                 aria-label="Decrease quantity"
                 className="text-muted-foreground hover:text-foreground flex size-8 items-center justify-center rounded-md transition-colors"
-                onClick={() => setQuantity((q) => (q > 1 ? q - 1 : 1))}
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               >
                 <Minus className="size-4" />
               </button>
@@ -69,7 +67,7 @@ const OrderForm = ({ item }: OrderFormType) => {
                 type="button"
                 aria-label="Increase quantity"
                 className="text-muted-foreground hover:text-foreground flex size-8 items-center justify-center rounded-md transition-colors"
-                onClick={() => setQuantity((q) => q + 1)}
+                onClick={() => setQuantity((q) => Math.min(20, q + 1))}
               >
                 <Plus className="size-4" />
               </button>
@@ -90,11 +88,11 @@ const OrderForm = ({ item }: OrderFormType) => {
               )}
               aria-invalid={!!errors.deliveryDate}
               value={deliveryDate}
+              min={new Date().toISOString().slice(0, 10)}
               onChange={(e) => {
                 setDeliveryDate(e.target.value);
                 setErrors((prev) => ({ ...prev, deliveryDate: undefined }));
               }}
-              min={new Date().toISOString().slice(0, 10)}
             />
             {errors.deliveryDate && (
               <p className="text-sm text-red-500">{errors.deliveryDate}</p>
@@ -143,7 +141,12 @@ const OrderForm = ({ item }: OrderFormType) => {
             />
           </div>
 
-          <PaymentsDialog orderData={orderData} onValidationFail={setErrors} />
+          <PaymentsDialog
+            orderData={orderData}
+            itemName={item.itemName}
+            price={totalAmount}
+            onValidationFail={setErrors}
+          />
         </form>
 
         <div>
@@ -151,12 +154,19 @@ const OrderForm = ({ item }: OrderFormType) => {
             Not ready to order yet? Keep it in your bag.
           </p>
           <AddToBagButton
-            user={user}
+            user={
+              user
+                ? {
+                    ...user,
+                    status: user.isBlocked ? "blocked" : "active",
+                  }
+                : undefined
+            }
             item={{
-              id: item._id as string,
+              id: item._id,
               itemName: item.itemName,
-              price: Number(item.price ?? 0),
-              imageUrl: item.imageUrl ?? "",
+              price,
+              imageUrl: image,
               location: item.location,
             }}
           />

@@ -15,12 +15,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTokenFromServer } from "@/lib/getTokenFromServer";
 import { getMyProfile, getAllUser } from "@/lib/api/users";
 import { getAdminMenuItems } from "@/lib/api/menuItems";
-import type { IUser } from "@/types/user.type";
-import type { IMenuItem } from "@/types/menuItem.type";
-import type { ITransaction } from "@/types/transaction.type";
 import { getAllTransaction } from "@/lib/api/transaction";
+import type { IUser } from "@/types/user.type";
 
-const quickLinks = [
+interface QuickLink {
+  title: string;
+  description: string;
+  href: string;
+  icon: ElementType;
+}
+
+interface Stat {
+  label: string;
+  value: number;
+  icon: ElementType;
+  tone: string;
+}
+
+type StatCardProps = Stat;
+
+const quickLinks: QuickLink[] = [
   {
     title: "Review menu submissions",
     description: "Approve or reject pending items from vendors.",
@@ -41,33 +55,7 @@ const quickLinks = [
   },
 ];
 
-/**
- * The admin menu-items endpoint returns a bare array today, while the typed
- * client expects a paginated `{ items, total, page, limit }` response. Accept
- * both shapes so the overview works regardless of which one the server sends.
- */
-const toMenuItems = (response: unknown): IMenuItem[] => {
-  if (Array.isArray(response)) return response as IMenuItem[];
-
-  if (response && typeof response === "object" && "items" in response) {
-    const items = (response as { items?: unknown }).items;
-    return Array.isArray(items) ? (items as IMenuItem[]) : [];
-  }
-
-  return [];
-};
-
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  tone,
-}: {
-  label: string;
-  value: number;
-  icon: ElementType;
-  tone: string;
-}) {
+function StatCard({ label, value, icon: Icon, tone }: StatCardProps) {
   return (
     <Card className="rounded-2xl border-orange-100 bg-white shadow-sm">
       <CardContent className="flex items-center gap-4 p-5">
@@ -91,7 +79,7 @@ export default async function AdminOverviewPage() {
   const token = await getTokenFromServer();
 
   if (!token) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   const profile = await getMyProfile(token);
@@ -100,17 +88,21 @@ export default async function AdminOverviewPage() {
     redirect("/");
   }
 
-  const [users, pendingItems, allMenuItems, transactions] = await Promise.all([
-    getAllUser(token) as Promise<IUser[]>,
-    getAdminMenuItems({ status: "pending" }, token).then(toMenuItems),
-    getAdminMenuItems({}, token).then(toMenuItems),
-    getAllTransaction(token) as Promise<ITransaction[]>,
+  const [users, pendingRes, allRes, transactions] = await Promise.all([
+    getAllUser({}, token) as Promise<IUser[]>,
+    getAdminMenuItems({ status: "pending", limit: "1" }, token),
+    getAdminMenuItems({ limit: "1" }, token),
+    getAllTransaction(token),
   ]);
 
-  const vendors = users.filter((user) => user.role === "vendor");
-  const customers = users.filter((user) => user.role === "customer");
+  const vendors: IUser[] = users.filter((user : IUser) => user.role === "vendor");
+  const customers: IUser[] = users.filter(
+    (user: IUser) => user.role === "customer",
+  );
+  const pendingCount = pendingRes.total ?? 0;
+  const totalMenuItems = allRes.total ?? 0;
 
-  const stats = [
+  const stats: Stat[] = [
     {
       label: "Registered users",
       value: users.length,
@@ -131,13 +123,13 @@ export default async function AdminOverviewPage() {
     },
     {
       label: "Menu items",
-      value: allMenuItems.length,
+      value: totalMenuItems,
       icon: Pizza,
       tone: "bg-emerald-100 text-emerald-700",
     },
     {
       label: "Pending menu items",
-      value: pendingItems.length,
+      value: pendingCount,
       icon: Clock,
       tone: "bg-yellow-100 text-yellow-800",
     },
@@ -151,7 +143,6 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="min-h-screen bg-[#FFF8EF] p-4 sm:p-6 lg:p-8">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="font-heading text-2xl font-bold text-stone-900 sm:text-3xl">
           Admin Overview
@@ -162,7 +153,6 @@ export default async function AdminOverviewPage() {
         </p>
       </div>
 
-      {/* Stats */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {stats.map((stat) => (
           <StatCard
@@ -175,12 +165,11 @@ export default async function AdminOverviewPage() {
         ))}
       </div>
 
-      {/* Pending review callout */}
       <Card className="mb-6 rounded-2xl border-amber-200 bg-amber-50/70 shadow-sm">
         <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-heading text-lg font-semibold text-stone-900">
-              {pendingItems.length} menu items waiting for review
+              {pendingCount} menu items waiting for review
             </p>
             <p className="font-sans text-sm text-stone-600">
               Vendor submissions need your approval before they appear publicly.
@@ -196,7 +185,6 @@ export default async function AdminOverviewPage() {
         </CardContent>
       </Card>
 
-      {/* Quick links */}
       <div className="grid gap-4 md:grid-cols-3">
         {quickLinks.map((link) => {
           const Icon = link.icon;

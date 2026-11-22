@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { BadgeCheck, Users } from "lucide-react";
 import UsersFilters from "@/components/admin/UsersFilters";
 import UserRowActions from "@/components/admin/UserRowActions";
@@ -28,12 +29,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getUserStatusStyle, userRoleStyles } from "@/config/userDisplay";
-import { IUser, UserRole } from "@/types/user.type";
-import { getAllUser } from "@/lib/api/users";
+import type { IUser, UserRole } from "@/types/user.type";
+import { getAllUser, getMyProfile } from "@/lib/api/users";
 import { getTokenFromServer } from "@/lib/getTokenFromServer";
 
+type SearchParams = Promise<{
+  search?: string;
+  role?: string;
+}>;
 
-/** First letters of a name for the avatar fallback. */
 const getInitials = (name: string) =>
   name
     .split(" ")
@@ -43,25 +47,53 @@ const getInitials = (name: string) =>
     .join("")
     .toUpperCase();
 
-/** "14 Jan 2026" from the API date value. */
-const formatDate = (date: string | { $date: string }) =>
-  new Date(typeof date === "string" ? date : date.$date).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+const formatDate = (value?: string) =>
+  value
+    ? new Date(value).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "—";
 
-/* ---------- Page ---------- */
+const ManageUsersPage = async ({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) => {
+  const token = await getTokenFromServer();
 
-const ManageUsersPage = async() => {
-  const token =await getTokenFromServer()
-   const users : IUser[] = await getAllUser(token)
+  if (!token) {
+    redirect("/sign-in");
+  }
+
+  const profile = await getMyProfile(token);
+
+  if (profile.role !== "admin") {
+    redirect("/");
+  }
+
+  const params = await searchParams;
+  const search = params.search?.trim() ?? "";
+  const role =
+    params.role === "vendor" || params.role === "customer"
+      ? params.role
+      : undefined;
+
+  let users: IUser[] = [];
+  let errorMessage: string | null = null;
+
+  try {
+    users = await getAllUser({ search: search || undefined, role }, token);
+  } catch (error) {
+    console.error("[admin/users] load failed:", error);
+    errorMessage = "Users load করা যায়নি। Terminal এ error দেখুন।";
+  }
+
   const blockedCount = users.filter((user) => user.isBlocked).length;
-
 
   return (
     <div className="w-full px-4 py-8 md:px-6">
-      {/* Header */}
       <div className="mb-5">
         <h1 className="font-heading text-2xl font-bold sm:text-3xl">
           Manage Users
@@ -72,21 +104,24 @@ const ManageUsersPage = async() => {
         </p>
       </div>
 
-      {/* Filters */}
       <div className="mb-5">
-        <UsersFilters />
+        <UsersFilters
+          initial={{ search, role: role ?? "", status: "" }}
+          resultCount={users.length}
+        />
       </div>
 
-      {/* Table */}
-      {users.length > 0 ? (
+      {errorMessage ? (
+        <p className="text-destructive text-sm">{errorMessage}</p>
+      ) : users.length > 0 ? (
         <Card className="gap-0 py-0">
-          <CardHeader className="border-b border-border py-4">
+          <CardHeader className="border-border border-b py-4">
             <CardTitle>All Users</CardTitle>
             <CardDescription>
               {users.length} users · {blockedCount} blocked
             </CardDescription>
             <CardAction>
-              <Badge variant="secondary">{users.length} total</Badge>
+              <Badge variant="secondary">{users.length} shown</Badge>
             </CardAction>
           </CardHeader>
 
@@ -103,7 +138,7 @@ const ManageUsersPage = async() => {
                   <TableHead className="w-28 text-xs tracking-wide uppercase">
                     Status
                   </TableHead>
-                  <TableHead className="hidden w-30 text-xs tracking-wide uppercase lg:table-cell">
+                  <TableHead className="w-30 hidden text-xs tracking-wide uppercase lg:table-cell">
                     Joined
                   </TableHead>
                   <TableHead className="w-64 pr-4 text-right text-xs tracking-wide uppercase">
@@ -114,16 +149,14 @@ const ManageUsersPage = async() => {
 
               <TableBody>
                 {users.map((user) => {
-                  const roleStyle =
-                    userRoleStyles[user.role as UserRole] ?? {
-                      label: user.role,
-                      className: "border-border bg-muted text-muted-foreground",
-                    };
+                  const roleStyle = userRoleStyles[user.role as UserRole] ?? {
+                    label: user.role,
+                    className: "border-border bg-muted text-muted-foreground",
+                  };
                   const statusStyle = getUserStatusStyle(user.isBlocked);
 
                   return (
                     <TableRow key={user._id}>
-                      {/* Left — user info */}
                       <TableCell className="py-3 pl-4 align-middle whitespace-normal">
                         <div className="flex min-w-0 items-center gap-3">
                           <Avatar size="lg" className="shrink-0">
@@ -154,14 +187,15 @@ const ManageUsersPage = async() => {
                         </div>
                       </TableCell>
 
-                      {/* Role badge */}
                       <TableCell className="py-3 align-middle">
-                        <Badge variant="outline" className={roleStyle.className}>
+                        <Badge
+                          variant="outline"
+                          className={roleStyle.className}
+                        >
                           {roleStyle.label}
                         </Badge>
                       </TableCell>
 
-                      {/* Status capsule */}
                       <TableCell className="py-3 align-middle">
                         <StatusCapsule
                           label={statusStyle.label}
@@ -169,12 +203,10 @@ const ManageUsersPage = async() => {
                         />
                       </TableCell>
 
-                      {/* Joined date */}
                       <TableCell className="text-muted-foreground hidden py-3 align-middle text-xs lg:table-cell">
                         {formatDate(user.createdAt)}
                       </TableCell>
 
-                      {/* Right — actions */}
                       <TableCell className="py-3 pr-4 align-middle">
                         <UserRowActions user={user} />
                       </TableCell>
@@ -193,7 +225,9 @@ const ManageUsersPage = async() => {
             </EmptyMedia>
             <EmptyTitle>No users found</EmptyTitle>
             <EmptyDescription>
-              Registered users will appear here as soon as they sign up.
+              {search || role
+                ? "কোনো user মিলছে না। Filter বদলে আবার চেষ্টা করুন।"
+                : "Registered users will appear here as soon as they sign up."}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

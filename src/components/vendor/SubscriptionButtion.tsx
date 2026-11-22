@@ -1,14 +1,12 @@
 "use client";
-import { createTransaction } from "@/lib/actions/transaction";
+
 import { FormEvent, useState } from "react";
 import toast from "react-hot-toast";
-import { Button } from "../ui/button";
 import { Loader2, Lock } from "lucide-react";
-import { CardContent } from "../ui/card";
-import { Separator } from "../ui/separator";
-import { authClient } from "@/lib/auth-client";
-import { useUserFromClient } from "@/utils/getUserFromClient";
-
+import { Button } from "@/components/ui/button";
+import { CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { createTransaction } from "@/lib/actions/transaction";
 
 const premiumPlan = {
   name: "Premium",
@@ -28,28 +26,22 @@ const formattedPrice = new Intl.NumberFormat("en-US", {
   currency: premiumPlan.currency,
 }).format(premiumPlan.price);
 
-const SubscriptionButtion = () => {
+const SubscriptionButton = () => {
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const user = useUserFromClient()
-
-  
 
   const handleCheckout = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsRedirecting(true);
 
     try {
-      const { data, error } = await authClient.token();
+      // Token apiFetch নিজেই পাঠায়। Price ও vendor server ঠিক করে।
+      const result = await createTransaction();
 
-      if (error || !data?.token) {
-        throw new Error("Could not verify your session. Please sign in again.");
+      if (!result.url) {
+        throw new Error("Checkout link পাওয়া যায়নি। আবার চেষ্টা করুন।");
       }
 
-      // Server should verify this token and decide the price itself
-      const result = await createTransaction(data.token , user?.id as string);
-      if (result.url) {
-        window.location.assign(result.url);
-      }
+      window.location.assign(result.url);
     } catch (err) {
       toast.error(
         err instanceof Error
@@ -87,10 +79,11 @@ const SubscriptionButtion = () => {
             {formattedPrice}
           </span>
         </div>
+
         <Button
           type="submit"
           disabled={isRedirecting}
-          className="h-12 w-full rounded-xl bg-primary font-heading text-base font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-70 cursor-pointer"
+          className="h-12 w-full cursor-pointer rounded-xl bg-primary font-heading text-base font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-70"
         >
           {isRedirecting ? (
             <>
@@ -101,7 +94,8 @@ const SubscriptionButtion = () => {
             "Continue to payment"
           )}
         </Button>
-        <p className="flex items-center justify-center gap-1.5 text-center font-sans text-xs text-muted-foreground">
+
+        <p className="text-muted-foreground flex items-center justify-center gap-1.5 text-center font-sans text-xs">
           <Lock className="h-3.5 w-3.5" />
           Secure payment by Stripe
         </p>
@@ -110,4 +104,4 @@ const SubscriptionButtion = () => {
   );
 };
 
-export default SubscriptionButtion;
+export default SubscriptionButton;
