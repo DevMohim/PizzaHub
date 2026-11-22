@@ -12,9 +12,9 @@ export interface VendorOption {
 }
 
 const STATUS_OPTIONS = [
-  { value: "all", label: "সব status" },
+  { value: "all", label: "All status" },
   { value: "pending", label: "Pending" },
-  { value: "approved", label: "Approved (সব)" },
+  { value: "approved", label: "Approved " },
   { value: "active", label: "Active (live)" },
   { value: "inactive", label: "Inactive" },
   { value: "rejected", label: "Rejected" },
@@ -206,7 +206,7 @@ const MenuItemsFilters = ({
       <p className="text-muted-foreground text-xs">
         {isPending
           ? "Loading..."
-          : `${resultCount} / ${totalCount} টি item দেখাচ্ছে`}
+          : `${resultCount} / ${totalCount}  items found`}
       </p>
     </div>
   );

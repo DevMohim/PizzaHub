@@ -223,7 +223,7 @@ const MenuItemsManager = ({
                   onClick={() => goToPage(page - 1)}
                   className="border-input hover:bg-accent rounded-lg border px-3 py-1.5 disabled:opacity-50"
                 >
-                  আগের পাতা
+                  Previous page
                 </button>
                 <span className="text-muted-foreground text-xs">
                   {page} / {totalPages}
@@ -234,7 +234,7 @@ const MenuItemsManager = ({
                   onClick={() => goToPage(page + 1)}
                   className="border-input hover:bg-accent rounded-lg border px-3 py-1.5 disabled:opacity-50"
                 >
-                  পরের পাতা
+                  Next page
                 </button>
               </div>
             )}
@@ -258,8 +258,8 @@ const MenuItemsManager = ({
 
           <p className="text-muted-foreground mt-2 max-w-sm text-sm">
             {hasFilters
-              ? "কোনো item মিলছে না। Filter বদলে আবার চেষ্টা করুন।"
-              : "এখন দেখানোর মতো কোনো menu item নেই।"}
+              ? "No Item found, Change filter and try later"
+              : "There is no menu to show।"}
           </p>
         </div>
       )}
