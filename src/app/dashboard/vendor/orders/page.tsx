@@ -1,7 +1,4 @@
-import { getOrdersByVendorEmail } from "@/lib/api/orders";
-import { auth } from "@/lib/auth";
-import { IOrder, OrderStatus } from "@/types/order.type";
-import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import {
   Clock,
   CookingPot,
@@ -11,7 +8,6 @@ import {
   XCircle,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -22,17 +18,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import StatusCapsule from "@/components/shared/StatusCapsule";
-import { cn } from "cn";
 import ActionBtns from "@/components/vendor/ActionBtns";
+import { cn } from "@/lib/utils";
+import { getTokenFromServer } from "@/lib/getTokenFromServer";
+import { getMyProfile } from "@/lib/api/users";
+import { getOrdersByVendorEmail } from "@/lib/api/orders";
+import type { IOrder, OrderStatus } from "@/types/order.type";
 
-/* -------------------------------------------------------------------------- */
-/*                          Status config (shared)                            */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Visual style for each order status — same tones used across the vendor
- * dashboard so the status capsules always look consistent.
- */
 const statusStyles: Record<OrderStatus, { label: string; className: string }> =
   {
     pending: {
@@ -53,30 +45,35 @@ const statusStyles: Record<OrderStatus, { label: string; className: string }> =
     },
   };
 
-/* -------------------------------------------------------------------------- */
-/*                          Action buttons (UI only)                          */
-/* -------------------------------------------------------------------------- */
-
-
-/* -------------------------------------------------------------------------- */
-/*                              Page                                          */
-/* -------------------------------------------------------------------------- */
+const formatDate = (value?: string) =>
+  value
+    ? new Date(value).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "—";
 
 const OrderPage = async () => {
-  // 1) Get the signed-in vendor.
-  const session = await auth.api.getSession({ headers: await headers() });
-  const user = session?.user;
+  const token = await getTokenFromServer();
 
-  // 2) Fetch only this vendor's orders.
-  const myOrders: IOrder[] = await getOrdersByVendorEmail(user?.email as string);
+  if (!token) {
+    redirect("/sign-in");
+  }
 
-  // 3) Count orders per status for the stat cards.
+  const profile = await getMyProfile(token);
+
+  if (profile.role !== "vendor") {
+    redirect("/");
+  }
+
+  const myOrders: IOrder[] = await getOrdersByVendorEmail(token);
+
   const total = myOrders.length;
   const pending = myOrders.filter((o) => o.status === "pending").length;
   const accepted = myOrders.filter((o) => o.status === "accepted").length;
   const rejected = myOrders.filter((o) => o.status === "rejected").length;
 
-  // 4) Stat cards data.
   const stats = [
     {
       label: "Total Orders",
@@ -104,14 +101,6 @@ const OrderPage = async () => {
     },
   ] as const;
 
-  // "YYYY-MM-DD" -> "20 Nov 2026"
-  const formatDate = (value: string) =>
-    new Date(value).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-
   return (
     <div className="w-full px-4 py-8 md:px-6">
       {/* Header */}
@@ -132,7 +121,7 @@ const OrderPage = async () => {
           return (
             <div
               key={stat.label}
-              className="rounded-xl border border-border bg-card px-4 py-3 shadow-xs"
+              className="border-border bg-card rounded-xl border px-4 py-3 shadow-xs"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="font-heading text-2xl font-bold sm:text-3xl">
@@ -155,11 +144,9 @@ const OrderPage = async () => {
         })}
       </div>
 
-      {/* Orders list / empty state */}
       {total > 0 ? (
         <Card className="gap-0 py-0">
-          {/* Card header */}
-          <div className="flex flex-col gap-1 border-b border-border px-4 py-4">
+          <div className="border-border flex flex-col gap-1 border-b px-4 py-4">
             <h2 className="font-heading text-base font-medium">
               Orders for your items
             </h2>
@@ -169,7 +156,7 @@ const OrderPage = async () => {
             </p>
           </div>
 
-          {/* Desktop — table */}
+          {/* Desktop table */}
           <Table className="hidden md:table">
             <TableHeader>
               <TableRow className="hover:bg-transparent">
@@ -183,7 +170,7 @@ const OrderPage = async () => {
                   Delivery
                 </TableHead>
                 <TableHead className="text-xs tracking-wide uppercase">
-                  Total
+                  Message
                 </TableHead>
                 <TableHead className="text-xs tracking-wide uppercase">
                   Status
@@ -195,15 +182,15 @@ const OrderPage = async () => {
             </TableHeader>
 
             <TableBody>
-              {myOrders.map((order, index) => {
-                const status = statusStyles[order.status ?? "pending"];
-                const customerInitial = (order.userName ?? "?")
+              {myOrders.map((order) => {
+                const status =
+                  statusStyles[order.status] ?? statusStyles.pending;
+                const customerInitial = (order.customerName ?? "?")
                   .charAt(0)
                   .toUpperCase();
 
                 return (
-                  <TableRow key={order._id ?? index}>
-                    {/* Customer */}
+                  <TableRow key={order._id}>
                     <TableCell className="py-3 pl-4 align-middle whitespace-normal">
                       <div className="flex min-w-0 items-center gap-2.5">
                         <Avatar className="size-9 shrink-0">
@@ -216,65 +203,52 @@ const OrderPage = async () => {
                         </Avatar>
                         <div className="min-w-0">
                           <p className="font-heading truncate text-sm font-semibold">
-                            {order.userName}
+                            {order.customerName}
                           </p>
                           <p className="text-muted-foreground flex items-center gap-1 text-xs">
                             <Mail className="size-3" aria-hidden="true" />
-                            {order.userEmail}
+                            <span className="truncate">
+                              {order.customerEmail}
+                            </span>
                           </p>
                         </div>
                       </div>
                     </TableCell>
 
-                    {/* Item */}
                     <TableCell className="py-3 align-middle whitespace-normal">
                       <div className="flex min-w-0 items-center gap-2.5">
-                        <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-muted">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={order.itemImage}
-                            alt={order.itemName}
-                            className="size-full object-cover"
-                            loading="lazy"
-                          />
+                        <div className="bg-muted relative size-10 shrink-0 overflow-hidden rounded-lg">
+                          {order.itemImage ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={order.itemImage}
+                              alt={order.itemName}
+                              className="size-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : null}
                         </div>
-                        <div className="min-w-0">
-                          <p className="font-heading truncate text-sm font-semibold">
-                            {order.itemName}
-                          </p>
-                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                            <Badge variant="outline" className="text-[11px]">
-                              {order.itemCategory}
-                            </Badge>
-                            <span className="text-muted-foreground text-xs">
-                              Qty {order.quantity}
-                            </span>
-                          </div>
-                        </div>
+                        <p className="font-heading truncate text-sm font-semibold">
+                          {order.itemName}
+                        </p>
                       </div>
                     </TableCell>
 
-                    {/* Delivery */}
                     <TableCell className="py-3 align-middle whitespace-normal">
-                      <p className="font-medium">{formatDate(order.deliveryDate)}</p>
-                      <p className="text-muted-foreground wrap-break-word text-xs">
+                      <p className="font-medium">
+                        {formatDate(order.deliveryDate)}
+                      </p>
+                      <p className="text-muted-foreground text-xs wrap-break-words">
                         {order.deliveryAddress}
                       </p>
                     </TableCell>
 
-                    {/* Total */}
-                    <TableCell className="py-3 align-middle whitespace-nowrap">
-                      <span className="font-heading text-primary font-bold">
-                        ${order.totalAmount.toFixed(2)}
-                      </span>
-                      {order.message && (
-                        <p className="text-muted-foreground mt-0.5 max-w-40 truncate text-xs italic">
-                          “{order.message}”
-                        </p>
-                      )}
+                    <TableCell className="py-3 align-middle whitespace-normal">
+                      <p className="text-muted-foreground max-w-48 truncate text-xs italic">
+                        {order.message ? `“${order.message}”` : "—"}
+                      </p>
                     </TableCell>
 
-                    {/* Status */}
                     <TableCell className="py-3 align-middle">
                       <StatusCapsule
                         label={status.label}
@@ -282,7 +256,6 @@ const OrderPage = async () => {
                       />
                     </TableCell>
 
-                    {/* Actions */}
                     <TableCell className="py-3 pr-4 align-middle">
                       <div className="flex justify-end">
                         <ActionBtns order={order} />
@@ -294,16 +267,15 @@ const OrderPage = async () => {
             </TableBody>
           </Table>
 
-          {/* Mobile — card list */}
+          {/* Mobile list */}
           <CardContent className="space-y-3 p-4 md:hidden">
-            {myOrders.map((order, index) => {
-              const status = statusStyles[order.status ?? "pending"];
+            {myOrders.map((order) => {
+              const status = statusStyles[order.status] ?? statusStyles.pending;
               return (
                 <div
-                  key={order._id ?? index}
-                  className="rounded-xl border border-border p-3"
+                  key={order._id}
+                  className="border-border rounded-xl border p-3"
                 >
-                  {/* Customer + status */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-2.5">
                       <Avatar className="size-9 shrink-0">
@@ -311,15 +283,15 @@ const OrderPage = async () => {
                           className="font-heading text-xs font-bold text-white"
                           style={{ background: "var(--gradient-primary)" }}
                         >
-                          {(order.userName ?? "?").charAt(0).toUpperCase()}
+                          {(order.customerName ?? "?").charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
                         <p className="font-heading truncate text-sm font-semibold">
-                          {order.userName}
+                          {order.customerName}
                         </p>
                         <p className="text-muted-foreground truncate text-xs">
-                          {order.userEmail}
+                          {order.customerEmail}
                         </p>
                       </div>
                     </div>
@@ -329,42 +301,32 @@ const OrderPage = async () => {
                     />
                   </div>
 
-                  {/* Item */}
-                  <div className="mt-3 flex items-center gap-2.5 rounded-lg bg-muted/60 p-2.5">
-                    <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-muted">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={order.itemImage}
-                        alt={order.itemName}
-                        className="size-full object-cover"
-                        loading="lazy"
-                      />
+                  <div className="bg-muted/60 mt-3 flex items-center gap-2.5 rounded-lg p-2.5">
+                    <div className="bg-muted relative size-12 shrink-0 overflow-hidden rounded-lg">
+                      {order.itemImage ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={order.itemImage}
+                          alt={order.itemName}
+                          className="size-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : null}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-heading truncate text-sm font-semibold">
-                          {order.itemName}
-                        </p>
-                        <Badge variant="outline" className="text-[11px]">
-                          {order.itemCategory}
-                        </Badge>
-                      </div>
-                      <p className="text-muted-foreground mt-0.5 text-xs">
-                        Qty {order.quantity} ·{" "}
-                        <span className="font-heading text-primary font-bold">
-                          ${order.totalAmount.toFixed(2)}
-                        </span>
-                      </p>
-                    </div>
+                    <p className="font-heading truncate text-sm font-semibold">
+                      {order.itemName}
+                    </p>
                   </div>
 
-                  {/* Delivery + actions */}
                   <div className="mt-3 flex flex-wrap items-end justify-between gap-2">
                     <div className="text-muted-foreground text-xs">
                       <p>Delivery {formatDate(order.deliveryDate)}</p>
-                      <p className="text-muted-foreground mt-0.5 wrap-break-word">
+                      <p className="mt-0.5 wrap-break-words">
                         {order.deliveryAddress}
                       </p>
+                      {order.message ? (
+                        <p className="mt-0.5 italic">“{order.message}”</p>
+                      ) : null}
                     </div>
                     <ActionBtns order={order} />
                   </div>

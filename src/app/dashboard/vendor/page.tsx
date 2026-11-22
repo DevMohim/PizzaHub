@@ -1,10 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   ArrowUpRight,
   CheckCircle2,
   Clock,
   Crown,
-  MapPin,
   Plus,
   Store,
   TrendingUp,
@@ -17,8 +17,8 @@ import {
 import PlanProgress from "@/components/dashboard/PlanProgress";
 import {
   Avatar,
-  AvatarFallback,
   AvatarBadge,
+  AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -31,37 +31,45 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { cn } from "cn";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { cn } from "@/lib/utils";
+import { getTokenFromServer } from "@/lib/getTokenFromServer";
+import { getMyProfile } from "@/lib/api/users";
 import { getMenuItemsByEmail } from "@/lib/api/menuItems";
-import { IMenuItem } from "@/types/menuItem.type";
 import { getOrdersByVendorEmail } from "@/lib/api/orders";
+import type { OrderStatus } from "@/types/order.type";
 
-import { IOrder } from "@/types/order.type";
+const FREE_ACTIVE_LIMIT = 3;
 
-/* ---------- Static demo data ---------- */
-
-const orderStatusStyles: Record<string, string> = {
+const orderStatusStyles: Record<OrderStatus, string> = {
   pending: "bg-warning/10 text-warning ring-warning/30",
   accepted: "bg-success/10 text-success ring-success/30",
+  rejected: "bg-destructive/10 text-destructive ring-destructive/30",
+  cancelled: "bg-muted text-muted-foreground ring-border",
 };
 
-/* ---------- Page ---------- */
+const formatDate = (value?: string) =>
+  value ? new Date(value).toLocaleDateString() : "—";
 
 const VendorDashboardPage = async () => {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const user = session?.user;
+  const token = await getTokenFromServer();
 
-  const menuItems: IMenuItem[] = await getMenuItemsByEmail(
-    user?.email as string,
-  );
-  const orders: IOrder[] = await getOrdersByVendorEmail(user?.email as string);
+  if (!token) {
+    redirect("/sign-in");
+  }
 
-  const activeitems = menuItems.filter((item) => item.active);
+  // Server Component তে token explicit ভাবে পাঠাতে হয়
+  const [profile, menuItems, orders] = await Promise.all([
+    getMyProfile(token),
+    getMenuItemsByEmail(token),
+    getOrdersByVendorEmail(token),
+  ]);
 
-  const pendingsMenuItems = orders.filter((item) => item.status === "pending");
-  const acceptedMenuItems = orders.filter((item) => item.status === "accepted");
+  const isPremium = profile.subscriptionPlan === "premium";
+  const activeItems = menuItems.filter((item) => item.active);
+  const pendingOrders = orders.filter((order) => order.status === "pending");
+  const acceptedOrders = orders.filter((order) => order.status === "accepted");
+  // Backend newest first পাঠায়
+  const recentOrders = orders.slice(0, 5);
 
   const stats = [
     {
@@ -72,19 +80,19 @@ const VendorDashboardPage = async () => {
     },
     {
       label: "Active Items",
-      value: activeitems.length,
+      value: activeItems.length,
       icon: CheckCircle2,
       tone: "text-success bg-success/10",
     },
     {
       label: "Pending Orders",
-      value: pendingsMenuItems.length,
+      value: pendingOrders.length,
       icon: Clock,
       tone: "text-warning bg-warning/10",
     },
     {
       label: "Accepted Orders",
-      value: acceptedMenuItems.length,
+      value: acceptedOrders.length,
       icon: TrendingUp,
       tone: "text-secondary bg-secondary/10",
     },
@@ -92,27 +100,26 @@ const VendorDashboardPage = async () => {
 
   return (
     <div className="w-full px-4 py-8 md:px-6">
-      {/* Header — greeting + profile + CTA */}
+      {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Avatar className="size-12">
-            <AvatarImage src={user?.image || undefined}></AvatarImage>
+            <AvatarImage src={profile.image || undefined} />
             <AvatarFallback
               className="font-heading text-sm font-bold text-white"
               style={{ background: "var(--gradient-primary)" }}
             >
-              {user?.name.charAt(0).toUpperCase()}
+              {profile.name?.charAt(0).toUpperCase()}
             </AvatarFallback>
             <AvatarBadge className="bg-success" />
           </Avatar>
           <div>
             <h1 className="font-heading text-2xl font-bold sm:text-3xl">
-              Welcome back, {user?.name} 👋
+              Welcome back, {profile.name} 👋
             </h1>
             <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-sm">
               <Store className="size-3.5" aria-hidden="true" />
-              RC Pizzeria · <MapPin className="size-3.5" aria-hidden="true" />
-              Dhanmondi, Dhaka
+              {profile.businessName || "Your restaurant"}
             </p>
           </div>
         </div>
@@ -124,7 +131,7 @@ const VendorDashboardPage = async () => {
             "h-10 shrink-0 bg-(image:--gradient-primary) text-white hover:opacity-90",
           )}
         >
-          <Plus />
+          <Plus aria-hidden="true" />
           Add Menu Item
         </Link>
       </div>
@@ -156,9 +163,8 @@ const VendorDashboardPage = async () => {
         })}
       </div>
 
-      {/* Charts + plan */}
+      {/* Chart + plan */}
       <div className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-3">
-        {/* Orders chart */}
         <Card className="xl:col-span-2">
           <CardHeader>
             <CardTitle className="font-heading">Orders This Week</CardTitle>
@@ -171,7 +177,6 @@ const VendorDashboardPage = async () => {
           </CardContent>
         </Card>
 
-        {/* Current plan */}
         <Card className="relative overflow-hidden">
           <div
             className="absolute inset-x-0 top-0 h-1.5"
@@ -182,9 +187,13 @@ const VendorDashboardPage = async () => {
             <CardAction>
               <Badge
                 variant="outline"
-                className="text-muted-foreground bg-muted"
+                className={cn(
+                  isPremium
+                    ? "text-warning bg-warning/10"
+                    : "text-muted-foreground bg-muted",
+                )}
               >
-                Free Plan
+                {isPremium ? "Premium" : "Free Plan"}
               </Badge>
             </CardAction>
             <CardTitle className="font-heading flex items-center gap-2">
@@ -192,11 +201,18 @@ const VendorDashboardPage = async () => {
               Current Plan
             </CardTitle>
             <CardDescription>
-              Free vendors can publish up to 3 active menu items.
+              {isPremium
+                ? "Unlimited active menu items and Premium benefits."
+                : `Free vendors can publish up to ${FREE_ACTIVE_LIMIT} active menu items.`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <PlanProgress used={3} max={3} />
+            <PlanProgress
+              used={activeItems.length}
+              max={
+                isPremium ? Math.max(activeItems.length, 1) : FREE_ACTIVE_LIMIT
+              }
+            />
 
             <ul className="text-muted-foreground space-y-2 text-sm">
               <li className="flex items-center gap-2">
@@ -204,35 +220,51 @@ const VendorDashboardPage = async () => {
                   className="text-success size-4"
                   aria-hidden="true"
                 />
-                Up to 3 active menu items
+                {isPremium
+                  ? "Unlimited active menu items"
+                  : `Up to ${FREE_ACTIVE_LIMIT} active menu items`}
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2
                   className="text-success size-4"
                   aria-hidden="true"
                 />
-                Standard menu placement
+                {isPremium
+                  ? "Featured placement on homepage"
+                  : "Standard menu placement"}
               </li>
-              <li className="flex items-center gap-2 opacity-60">
-                <span className="flex size-4 items-center justify-center rounded-full border border-border text-[10px]">
-                  ✕
-                </span>
+              <li
+                className={cn(
+                  "flex items-center gap-2",
+                  !isPremium && "opacity-60",
+                )}
+              >
+                {isPremium ? (
+                  <CheckCircle2
+                    className="text-success size-4"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <span className="border-border flex size-4 items-center justify-center rounded-full border text-[10px]">
+                    ✕
+                  </span>
+                )}
                 Premium badge &amp; featured placement
               </li>
             </ul>
 
-            <Link href="/dashboard/vendor/subscription">
-              <button
-                disabled={user?.plan !== "premium"}
-                className={cn(
-                  buttonVariants({ size: "lg" }),
-                  "h-10 w-full bg-(image:--gradient-primary) text-white hover:opacity-90 disabled:cursor-not-allowed",
-                )}
-              >
-                {" "}
-                Upgrade to Premium
-                <ArrowUpRight aria-hidden="true" />
-              </button>
+            <Link
+              href="/dashboard/vendor/subscription"
+              aria-disabled={isPremium}
+              tabIndex={isPremium ? -1 : undefined}
+              className={cn(
+                buttonVariants({ size: "lg" }),
+                "h-10 w-full bg-(image:--gradient-primary) text-white hover:opacity-90",
+                isPremium && "pointer-events-none opacity-60",
+              )}
+            >
+              {isPremium ? "Already Premium" : "Upgrade to Premium"}
+              <ArrowUpRight aria-hidden="true" />
             </Link>
           </CardContent>
         </Card>
@@ -240,7 +272,6 @@ const VendorDashboardPage = async () => {
 
       {/* Recent orders + category chart */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        {/* Recent orders */}
         <Card className="xl:col-span-2">
           <CardHeader>
             <CardTitle className="font-heading">Recent Orders</CardTitle>
@@ -258,114 +289,104 @@ const VendorDashboardPage = async () => {
             </CardAction>
           </CardHeader>
           <CardContent>
-            {/* Desktop table */}
-            <div className="hidden md:block">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left">
-                    <th className="text-muted-foreground pb-2 pr-4 font-medium">
-                      Order
-                    </th>
-                    <th className="text-muted-foreground pb-2 pr-4 font-medium">
-                      Customer
-                    </th>
-                    <th className="text-muted-foreground pb-2 pr-4 font-medium">
-                      Date
-                    </th>
-                    <th className="text-muted-foreground pb-2 pr-4 font-medium">
-                      Amount
-                    </th>
-                    <th className="text-muted-foreground pb-2 text-right font-medium">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => (
-                    <tr
+            {recentOrders.length === 0 ? (
+              <p className="text-muted-foreground py-6 text-center text-sm">
+                এখনো কোনো order আসেনি।
+              </p>
+            ) : (
+              <>
+                {/* Desktop table */}
+                <div className="hidden md:block">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-border border-b text-left">
+                        <th className="text-muted-foreground pr-4 pb-2 font-medium">
+                          Item
+                        </th>
+                        <th className="text-muted-foreground pr-4 pb-2 font-medium">
+                          Customer
+                        </th>
+                        <th className="text-muted-foreground pr-4 pb-2 font-medium">
+                          Delivery
+                        </th>
+                        <th className="text-muted-foreground pb-2 text-right font-medium">
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentOrders.map((order) => (
+                        <tr
+                          key={order._id}
+                          className="border-border/60 border-b last:border-0"
+                        >
+                          <td className="py-3 pr-4">
+                            <p className="font-medium">{order.itemName}</p>
+                            <p className="text-muted-foreground text-xs">
+                              {order._id}
+                            </p>
+                          </td>
+                          <td className="py-3 pr-4">{order.customerName}</td>
+                          <td className="text-muted-foreground py-3 pr-4">
+                            {formatDate(order.deliveryDate)}
+                          </td>
+                          <td className="py-3 text-right">
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase ring-1",
+                                orderStatusStyles[order.status],
+                              )}
+                            >
+                              <span
+                                className="bg-current size-1.5 rounded-full"
+                                aria-hidden="true"
+                              />
+                              {order.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile list */}
+                <ul className="space-y-3 md:hidden">
+                  {recentOrders.map((order) => (
+                    <li
                       key={order._id}
-                      className="border-b border-border/60 last:border-0"
+                      className="border-border rounded-xl border p-3"
                     >
-                      <td className="py-3 pr-4">
-                        <p className="font-medium">{order.itemName}</p>
-                        <p className="text-muted-foreground text-xs">
-                          {order._id}
-                        </p>
-                      </td>
-                      <td className="py-3 pr-4">{order.userName}</td>
-                      <td className="text-muted-foreground py-3 pr-4">
-                        {order.requestedAt?.$date
-                          ? new Date(
-                              order.requestedAt.$date,
-                            ).toLocaleDateString()
-                          : "—"}
-                      </td>
-                      <td className="py-3 pr-4 font-medium">
-                        ${order.price.toFixed(2)}
-                      </td>
-                      <td className="py-3 text-right">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">
+                            {order.itemName}
+                          </p>
+                          <p className="text-muted-foreground truncate text-xs">
+                            {order.customerName} ·{" "}
+                            {formatDate(order.deliveryDate)}
+                          </p>
+                        </div>
                         <span
                           className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase ring-1",
-                            orderStatusStyles[order.status as string],
+                            "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase ring-1",
+                            orderStatusStyles[order.status],
                           )}
                         >
-                          <span
-                            className="size-1.5 rounded-full bg-current"
-                            aria-hidden="true"
-                          />
                           {order.status}
                         </span>
-                      </td>
-                    </tr>
+                      </div>
+                      <p className="text-muted-foreground mt-2 truncate text-xs">
+                        {order.deliveryAddress}
+                      </p>
+                    </li>
                   ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile list */}
-            <ul className="space-y-3 md:hidden">
-              {orders.map((order) => (
-                <li
-                  key={order._id}
-                  className="rounded-xl border border-border p-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">
-                        {order.itemName}
-                      </p>
-                      <p className="text-muted-foreground truncate text-xs">
-                        {order.userName} ·{" "}
-                        {order.requestedAt?.$date
-                          ? new Date(
-                              order.requestedAt.$date,
-                            ).toLocaleDateString()
-                          : "—"}
-                      </p>
-                    </div>
-                    <span
-                      className={cn(
-                        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase ring-1",
-                        orderStatusStyles[order.status as string],
-                      )}
-                    >
-                      {order.status}
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground mt-2 text-xs">
-                    {order._id} ·{" "}
-                    <span className="text-foreground font-medium">
-                      ${order.price.toFixed(2)}
-                    </span>
-                  </p>
-                </li>
-              ))}
-            </ul>
+                </ul>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        {/* Category chart */}
         <Card>
           <CardHeader>
             <CardTitle className="font-heading">Items by Category</CardTitle>

@@ -1,50 +1,45 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { apiFetch, withQuery } from "./client";
+import type { CreateOrderInput, IOrder, OrderStatus } from "@/types/order.type";
 
-export const getOrdersByEmail = async(email:string | undefined ) => {
-   if (!email) {
-     throw new Error("User email is required.");
-   }
+// ---------- Customer ----------
 
-   try {
-     const res = await fetch(`${BASE_URL}/orders?email=${email}` , {
-      // headers:{Authorization: `Bearer ${token}`}
-     });
+export const createOrder = (data: CreateOrderInput, token?: string) =>
+  apiFetch<{ message: string; insertedId: string }>("/api/orders", {
+    method: "POST",
+    body: JSON.stringify(data),
+    token,
+  });
 
-     if (!res.ok) {
-       throw new Error(
-         `Failed to get orders. Server returned ${res.status} ${res.statusText}.`,
-       );
-     }
+// Customer: নিজের সব order (newest first)
+export const getMyOrders = (token?: string) =>
+  apiFetch<IOrder[]>("/api/orders/my", { token });
 
-     return await res.json();
-   } catch (error) {
-     console.error("Get orders failed:", error);
+// Customer: নিজের pending order cancel
+export const cancelOrder = (id: string, token?: string) =>
+  apiFetch<{ message: string }>(`/api/orders/${id}/cancel`, {
+    method: "PATCH",
+    token,
+  });
 
-     // আসল error message/cause যেন caller পর্যন্ত পৌঁছায়
-     throw new Error("Could not get orders.", { cause: error });
-   }
-}
+// ---------- Vendor ----------
 
+// Vendor: নিজের item এর order
+export const getOrdersByVendorEmail = (token?: string) =>
+  apiFetch<IOrder[]>("/api/orders/vendor", { token });
 
-export const getOrdersByVendorEmail = async(email:string) => {
-   if (!email) {
-     throw new Error("Vendor email is required.");
-   }
+export const updateAcceptedOrder = (id: string, token?: string) =>
+  apiFetch<{ message: string }>(`/api/orders/${id}/accept`, {
+    method: "PATCH",
+    token,
+  });
 
-   try {
-     const res = await fetch(`${BASE_URL}/orders/${email}`);
+export const updateRejectOrder = (id: string, token?: string) =>
+  apiFetch<{ message: string }>(`/api/orders/${id}/reject`, {
+    method: "PATCH",
+    token,
+  });
 
-     if (!res.ok) {
-       throw new Error(
-         `Failed to get orders. Server returned ${res.status} ${res.statusText}.`,
-       );
-     }
+// ---------- Admin ----------
 
-     return await res.json();
-   } catch (error) {
-     console.error("Get orders failed:", error);
-
-     // আসল error message/cause যেন caller পর্যন্ত পৌঁছায়
-     throw new Error("Could not get orders.", { cause: error });
-   }
-}
+export const getAdminOrders = (token?: string, status?: OrderStatus) =>
+  apiFetch<IOrder[]>(withQuery("/api/orders/admin", { status }), { token });

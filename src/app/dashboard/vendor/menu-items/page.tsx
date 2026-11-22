@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { headers } from "next/headers";
-import { AlertCircle, Lock, Plus } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { AlertCircle, Plus } from "lucide-react";
+import { getTokenFromServer } from "@/lib/getTokenFromServer";
+import { getMyProfile } from "@/lib/api/users";
 import { getMenuItemsByEmail } from "@/lib/api/menuItems";
 import MenuItemCard from "@/components/dashboard/MenuItemCard";
 import { buttonVariants } from "@/components/ui/button";
@@ -14,57 +15,35 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { IMenuItem } from "@/types/menuItem.type";
-import { cn } from "cn";
+import type { IMenuItem } from "@/types/menuItem.type";
+import { cn } from "@/lib/utils";
 
 const MenuItemsPage = async () => {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const email = session?.user?.email;
+  const token = await getTokenFromServer();
 
-  /* Not signed in — prompt instead of fetching. */
-  if (!email) {
-    return (
-      <div className="w-full px-4 py-8 md:px-6">
-        <Empty className="border border-border bg-card">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <Lock />
-            </EmptyMedia>
-            <EmptyTitle>Please sign in</EmptyTitle>
-            <EmptyDescription>
-              You need to be signed in as a vendor to manage your menu items.
-            </EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent>
-            <Link
-              href="/login"
-              className={cn(
-                buttonVariants({ size: "lg" }),
-                "h-10 bg-(image:--gradient-primary) text-white hover:opacity-90",
-              )}
-            >
-              Sign In
-            </Link>
-          </EmptyContent>
-        </Empty>
-      </div>
-    );
+  if (!token) {
+    redirect("/sign-in");
   }
 
-  /* Fetch this vendor's menu items — surface failures clearly. */
+  const profile = await getMyProfile(token);
+
+  if (profile.role !== "vendor") {
+    redirect("/");
+  }
+
   let items: IMenuItem[] = [];
   let errorMessage: string | null = null;
 
   try {
-    const data = await getMenuItemsByEmail(email);
-    items = Array.isArray(data) ? (data as IMenuItem[]) : [];
-  } catch {
+    items = await getMenuItemsByEmail(token);
+  } catch (error) {
+    console.error("[vendor/menu-items] load failed:", error);
     errorMessage =
       "We couldn't load your menu items. Please check your connection and try again.";
   }
 
   const total = items.length;
-  const pending = items.filter((item) => (item.status ?? "pending") === "pending").length;
+  const pending = items.filter((item) => item.status === "pending").length;
   const live = items.filter(
     (item) => item.status === "approved" && item.active === true,
   ).length;
@@ -89,7 +68,7 @@ const MenuItemsPage = async () => {
             "h-10 shrink-0 bg-(image:--gradient-primary) text-white hover:opacity-90",
           )}
         >
-          <Plus />
+          <Plus aria-hidden="true" />
           Add Menu Item
         </Link>
       </div>
@@ -104,7 +83,7 @@ const MenuItemsPage = async () => {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="rounded-xl border border-border bg-card px-4 py-3 shadow-xs"
+              className="border-border bg-card rounded-xl border px-4 py-3 shadow-xs"
             >
               <p className="font-heading text-xl font-bold sm:text-2xl">
                 {stat.value}
@@ -117,7 +96,7 @@ const MenuItemsPage = async () => {
         </div>
       )}
 
-      {/* Error state */}
+      {/* Error */}
       {errorMessage && (
         <Alert variant="destructive" className="mb-6">
           <AlertCircle />
@@ -126,9 +105,9 @@ const MenuItemsPage = async () => {
         </Alert>
       )}
 
-      {/* Empty state */}
+      {/* Empty */}
       {!errorMessage && items.length === 0 && (
-        <Empty className="border border-border bg-card">
+        <Empty className="border-border bg-card border">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <Plus />
@@ -146,21 +125,18 @@ const MenuItemsPage = async () => {
                 "h-10 bg-(image:--gradient-primary) text-white hover:opacity-90",
               )}
             >
-              <Plus />
+              <Plus aria-hidden="true" />
               Add Menu Item
             </Link>
           </EmptyContent>
         </Empty>
       )}
 
-      {/* Item list */}
+      {/* List */}
       {!errorMessage && items.length > 0 && (
         <div className="grid grid-cols-1 gap-4">
-          {items.map((item, index) => (
-            <MenuItemCard
-              key={item._id ?? index}
-              item={item}
-            />
+          {items.map((item) => (
+            <MenuItemCard key={item._id} item={item} />
           ))}
         </div>
       )}

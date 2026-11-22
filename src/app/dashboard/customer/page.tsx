@@ -1,19 +1,15 @@
-
-
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   ArrowUpRight,
   CalendarDays,
   Clock,
   CookingPot,
+  MapPin,
   ShoppingBag,
-  Utensils,
   UserRound,
   XCircle,
 } from "lucide-react";
-import { auth } from "@/lib/auth";
-import { getOrdersByEmail } from "@/lib/api/orders";
-import { IOrder, OrderStatus } from "@/types/order.type";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -25,14 +21,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Progress, ProgressIndicator, ProgressTrack } from "@/components/ui/progress";
+import {
+  Progress,
+  ProgressIndicator,
+  ProgressTrack,
+} from "@/components/ui/progress";
 import StatusCapsule from "@/components/shared/StatusCapsule";
-import { cn } from "cn";
-import { headers } from "next/headers";
-
-/* -------------------------------------------------------------------------- */
-/*                          Status config (shared)                            */
-/* -------------------------------------------------------------------------- */
+import { cn } from "@/lib/utils";
+import { getTokenFromServer } from "@/lib/getTokenFromServer";
+import { getMyProfile } from "@/lib/api/users";
+import { getMyOrders } from "@/lib/api/orders";
+import type { IOrder, OrderStatus } from "@/types/order.type";
 
 const statusStyles: Record<OrderStatus, { label: string; className: string }> =
   {
@@ -54,24 +53,36 @@ const statusStyles: Record<OrderStatus, { label: string; className: string }> =
     },
   };
 
-/* -------------------------------------------------------------------------- */
-/*                              Page                                          */
-/* -------------------------------------------------------------------------- */
+const formatDate = (value?: string) =>
+  value ? new Date(value).toLocaleDateString() : "—";
 
 export default async function CustomerOverviewPage() {
-  const session = await auth.api.getSession({headers : await headers()});
-  const user = session?.user;
+  const token = await getTokenFromServer();
 
- const orders:IOrder[] = await getOrdersByEmail(user?.email as string);
+  if (!token) {
+    redirect("/sign-in");
+  }
 
-  const total = orders.length;
-  const pending = orders.filter((o) => o.status === "pending").length;
-  const accepted = orders.filter((o) => o.status === "accepted").length;
-  const rejected = orders.filter((o) => o.status === "rejected").length;
+  const [profile, orders] = await Promise.all([
+    getMyProfile(token),
+    getMyOrders(token),
+  ]);
 
-  const recentOrders = orders.slice(0, 4);
+  if (profile.role !== "customer") {
+    redirect("/");
+  }
 
-  const firstName = user?.name?.split(" ")[0] ?? "Pizza Lover";
+  const typedOrders: IOrder[] = orders;
+
+  const total = typedOrders.length;
+  const pending = typedOrders.filter((o) => o.status === "pending").length;
+  const accepted = typedOrders.filter((o) => o.status === "accepted").length;
+  const rejected = typedOrders.filter((o) => o.status === "rejected").length;
+
+  // Backend newest first পাঠায়
+  const recentOrders = typedOrders.slice(0, 4);
+  const firstName = profile.name?.split(" ")[0] ?? "Pizza Lover";
+  const initial = profile.name?.charAt(0).toUpperCase() ?? "P";
 
   const stats = [
     {
@@ -102,15 +113,15 @@ export default async function CustomerOverviewPage() {
 
   return (
     <div className="w-full px-4 py-8 md:px-6">
-      {/* Header — greeting + profile + CTA */}
+      {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <Avatar className="size-12 ring-2 ring-primary/25">
-            {user?.image ? (
-              <AvatarImage src={user.image} alt={user.name} />
+          <Avatar className="ring-primary/25 size-12 ring-2">
+            {profile.image ? (
+              <AvatarImage src={profile.image} alt={profile.name} />
             ) : null}
             <span className="font-heading text-sm font-bold text-white">
-              {user?.name?.charAt(0).toUpperCase() ?? "P"}
+              {initial}
             </span>
           </Avatar>
           <div>
@@ -120,12 +131,8 @@ export default async function CustomerOverviewPage() {
             <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-sm">
               <UserRound className="size-3.5" aria-hidden="true" />
               Customer
-              {user?.email ? (
-                <>
-                  <span aria-hidden="true">·</span>
-                  {user.email}
-                </>
-              ) : null}
+              <span aria-hidden="true">·</span>
+              {profile.email}
             </p>
           </div>
         </div>
@@ -147,7 +154,10 @@ export default async function CustomerOverviewPage() {
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label} className="rounded-xl border border-border bg-card px-4 py-3 shadow-xs">
+            <Card
+              key={stat.label}
+              className="border-border bg-card rounded-xl border px-4 py-3 shadow-xs"
+            >
               <div className="flex items-center justify-between gap-2">
                 <p className="font-heading text-2xl font-bold sm:text-3xl">
                   {stat.value}
@@ -169,19 +179,28 @@ export default async function CustomerOverviewPage() {
         })}
       </div>
 
-      {/* Main grid — recent orders + profile card */}
+      {/* Main grid */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         {/* Recent orders */}
         <Card className="xl:col-span-2">
           <CardHeader>
             <CardTitle className="font-heading">Recent Orders</CardTitle>
             <CardDescription>Your latest pizza orders</CardDescription>
+            <CardAction>
+              <Link
+                href="/dashboard/customer/orders"
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+              >
+                View all
+                <ArrowUpRight aria-hidden="true" />
+              </Link>
+            </CardAction>
           </CardHeader>
           <CardContent>
             {recentOrders.length > 0 ? (
               <ul className="space-y-3">
                 {recentOrders.map((order) => (
-                  <RecentOrderRow key={order.itemId} order={order} />
+                  <RecentOrderRow key={order._id} order={order} />
                 ))}
               </ul>
             ) : (
@@ -198,7 +217,7 @@ export default async function CustomerOverviewPage() {
                   </p>
                 </div>
                 <Link
-                  href="/menu"
+                  href="/browse-menu"
                   className={cn(
                     buttonVariants({ size: "lg" }),
                     "h-10 bg-(image:--gradient-primary) text-white hover:opacity-90",
@@ -211,7 +230,7 @@ export default async function CustomerOverviewPage() {
           </CardContent>
         </Card>
 
-        {/* Side column — profile + order breakdown */}
+        {/* Side column */}
         <div className="flex flex-col gap-4">
           {/* Profile card */}
           <Card className="relative overflow-hidden">
@@ -230,9 +249,7 @@ export default async function CustomerOverviewPage() {
                   Customer
                 </Badge>
               </CardAction>
-              <CardTitle className="font-heading flex items-center gap-2">
-                My Profile
-              </CardTitle>
+              <CardTitle className="font-heading">My Profile</CardTitle>
               <CardDescription>
                 Your account details and quick actions.
               </CardDescription>
@@ -240,19 +257,19 @@ export default async function CustomerOverviewPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
                 <Avatar className="size-12">
-                  {user?.image ? (
-                    <AvatarImage src={user.image} alt={user.name} />
+                  {profile.image ? (
+                    <AvatarImage src={profile.image} alt={profile.name} />
                   ) : null}
                   <span className="font-heading text-sm font-bold text-white">
-                    {user?.name?.charAt(0).toUpperCase() ?? "P"}
+                    {initial}
                   </span>
                 </Avatar>
                 <div className="min-w-0">
                   <p className="font-heading truncate text-sm font-semibold">
-                    {user?.name ?? "Pizza Lover"}
+                    {profile.name}
                   </p>
                   <p className="text-muted-foreground truncate text-xs">
-                    {user?.email ?? "No email"}
+                    {profile.email}
                   </p>
                 </div>
               </div>
@@ -270,7 +287,7 @@ export default async function CustomerOverviewPage() {
             </CardContent>
           </Card>
 
-          {/* Order status breakdown */}
+          {/* Order breakdown */}
           <Card>
             <CardHeader>
               <CardTitle className="font-heading">Order Breakdown</CardTitle>
@@ -283,7 +300,11 @@ export default async function CustomerOverviewPage() {
                 [
                   { label: "Pending", value: pending, tone: "bg-warning" },
                   { label: "Accepted", value: accepted, tone: "bg-success" },
-                  { label: "Rejected", value: rejected, tone: "bg-destructive" },
+                  {
+                    label: "Rejected",
+                    value: rejected,
+                    tone: "bg-destructive",
+                  },
                 ] as const
               ).map((row) => {
                 const pct =
@@ -291,9 +312,7 @@ export default async function CustomerOverviewPage() {
                 return (
                   <div key={row.label} className="space-y-1.5">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {row.label}
-                      </span>
+                      <span className="text-muted-foreground">{row.label}</span>
                       <span className="font-medium">
                         {row.value}
                         <span className="text-muted-foreground ml-1 text-xs">
@@ -303,7 +322,7 @@ export default async function CustomerOverviewPage() {
                     </div>
                     <Progress value={pct}>
                       <ProgressTrack>
-                        <ProgressIndicator className={cn(row.tone)} />
+                        <ProgressIndicator className={row.tone} />
                       </ProgressTrack>
                     </Progress>
                   </div>
@@ -317,58 +336,46 @@ export default async function CustomerOverviewPage() {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*                              Recent Order Row                              */
-/* -------------------------------------------------------------------------- */
-
 const RecentOrderRow = ({ order }: { order: IOrder }) => {
-  const status = statusStyles[order.status as OrderStatus] ?? statusStyles.pending;
+  const status = statusStyles[order.status] ?? statusStyles.pending;
 
   return (
-    <li className="flex flex-col gap-3 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
+    <li className="border-border flex flex-col gap-3 rounded-xl border p-3 sm:flex-row sm:items-center sm:gap-4">
       {/* Thumbnail */}
-      <div className="relative h-32 w-full shrink-0 overflow-hidden rounded-lg bg-muted sm:h-16 sm:w-16">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={order.itemImage}
-          alt={order.itemName}
-          className="size-full object-cover"
-        />
+      <div className="bg-muted relative h-32 w-full shrink-0 overflow-hidden rounded-lg sm:h-16 sm:w-16">
+        {order.itemImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={order.itemImage}
+            alt={order.itemName}
+            className="size-full object-cover"
+          />
+        ) : null}
       </div>
 
       {/* Details */}
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-heading truncate text-sm font-semibold">
-            {order.itemName}
-          </h3>
-          <Badge variant="outline" className="text-[11px]">
-            {order.itemCategory}
-          </Badge>
-        </div>
+        <h3 className="font-heading truncate text-sm font-semibold">
+          {order.itemName}
+        </h3>
         <p className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
-          <Utensils className="size-3.5" aria-hidden="true" />
-          {order.userName}
-          <span aria-hidden="true">·</span>
-          <span>#{order.itemId}</span>
+          <MapPin className="size-3.5" aria-hidden="true" />
+          <span className="truncate">{order.deliveryAddress}</span>
         </p>
         <div className="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
           <span className="flex items-center gap-1">
             <CalendarDays className="size-3.5" aria-hidden="true" />
-            {order.deliveryDate}
-          </span>
-          <span className="font-heading text-primary text-sm font-bold">
-            ${order.totalAmount.toFixed(2)}
+            {formatDate(order.deliveryDate)}
           </span>
           <span className="flex items-center gap-1">
             <Clock className="size-3.5" aria-hidden="true" />
-            {order.requestedAt?.$date?.slice(0, 10) ?? ""}
+            Requested {formatDate(order.createdAt)}
           </span>
         </div>
       </div>
 
       {/* Status */}
-      <div className="flex shrink-0 items-center justify-between border-t border-border pt-3 sm:justify-end sm:border-t-0 sm:pt-0">
+      <div className="border-border flex shrink-0 items-center justify-between border-t pt-3 sm:justify-end sm:border-t-0 sm:pt-0">
         <StatusCapsule label={status.label} className={status.className} />
       </div>
     </li>

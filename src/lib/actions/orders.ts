@@ -1,107 +1,31 @@
 import { IOrder } from "@/types/order.type";
+import { apiFetch } from "@/lib/api/client";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+export const createOrder = async (data: IOrder) => {
+  if (!data) throw new Error("Order data is required.");
 
-export const createOrder = async(data:IOrder) => {
-   if (!data) {
-     throw new Error("Menu item data is required.");
-   }
+  return apiFetch("/api/orders", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+};
 
-   try {
-     const res = await fetch(`${BASE_URL}/orders`, {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify(data),
-     });
+// Customer: নিজের pending order cancel
+export const cancelOrder = async (id: string) => {
+  if (!id) throw new Error("Order id is required.");
 
-     if (!res.ok) {
-       throw new Error(
-         `Failed to create menu item. Server returned ${res.status} ${res.statusText}.`,
-       );
-     }
+  return apiFetch(`/api/orders/${id}/cancel`, { method: "PATCH" });
+};
 
-     return await res.json();
-   } catch (error) {
-     console.error("Create menu item failed:", error);
+// Vendor
+export const updateAcceptedOrder = async (id: string) => {
+  if (!id) throw new Error("Order id is required.");
 
-     // আসল error message/cause যেন caller পর্যন্ত পৌঁছায়
-     throw new Error("Could not create menu item.", { cause: error });
-   }
+  return apiFetch(`/api/orders/${id}/accept`, { method: "PATCH" });
+};
 
-}
+export const updateRejectOrder = async (id: string) => {
+  if (!id) throw new Error("Order id is required.");
 
-export const cancelOrder = async(id:string) => {
-  if (!id) {
-    throw new Error("Menu item id is required.");
-  }
-
-  try {
-    const res = await fetch(`${BASE_URL}/orders/${id}`, {
-      method: "DELETE",});
-
-    if (!res.ok) {
-      throw new Error(
-        `Failed to delete menu item. Server returned ${res.status} ${res.statusText}.`,
-      );
-    }
-
-    return await res.json();
-  } catch (error) {
-    console.error("Delete menu item failed:", error);
-
-    // আসল error message/cause যেন caller পর্যন্ত পৌঁছায়
-    throw new Error("Could not delete menu item.", { cause: error });
-  }
-}
-
-export const updateAcceptedOrder = async (id:string) => {
-  if (!id) {
-    throw new Error("Menu item id is required.");
-  }
-
-  try {
-    const res = await fetch(`${BASE_URL}/orders/${id}/approve`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!res.ok) {
-      throw new Error(
-        `Failed to update menu item status. Server returned ${res.status} ${res.statusText}.`,
-      );
-    }
-
-    return await res.json();
-  } catch (error) {
-    console.error("Update menu item status failed:", error);
-
-    // আসল error message/cause যেন caller পর্যন্ত পৌঁছায়
-    throw new Error("Could not update menu item status.", { cause: error });
-}
-}
-
-export const updateRejectOrder = async (id:string) => {
-  if (!id) {
-    throw new Error("Menu item id is required.");
-  }
-
-  try {
-    const res = await fetch(`${BASE_URL}/orders/${id}/reject`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!res.ok) {
-      throw new Error(
-        `Failed to update menu item status. Server returned ${res.status} ${res.statusText}.`,
-      );
-    }
-
-    return await res.json();
-  } catch (error) {
-    console.error("Update menu item status failed:", error);
-
-    // আসল error message/cause যেন caller পর্যন্ত পৌঁছায়
-    throw new Error("Could not update menu item status.", { cause: error });
-}
-}
+  return apiFetch(`/api/orders/${id}/reject`, { method: "PATCH" });
+};

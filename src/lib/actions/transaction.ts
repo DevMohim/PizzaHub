@@ -1,27 +1,9 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { apiFetch } from "@/lib/api/client";
 
-export const createTransaction = async (
-  token: string,
-  vendorId: string
-): Promise<{ url: string }> => {
-  if (!BASE_URL) {
-    throw new Error("Payment service is not configured.");
-  }
-
-  const res = await fetch(`${BASE_URL}/transactions/create-checkout-session`, {
+// Vendor: Premium checkout। token apiFetch নিজেই পাঠায়।
+export const createTransaction = async (): Promise<{ success: boolean; url: string }> => {
+  return apiFetch("/api/transactions/create-checkout-session", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ plan: "premium" , vendorId}),
+    body: JSON.stringify({ plan: "premium" }),
   });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.message || "Checkout failed");
-  }
-
-  return data as { success: boolean; url: string };
 };

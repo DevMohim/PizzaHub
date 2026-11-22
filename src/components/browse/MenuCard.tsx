@@ -20,10 +20,10 @@ const MenuCard = ({ item }: MenuCardProps) => {
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
       {/* Image */}
       <div className="relative aspect-video overflow-hidden bg-muted">
-        {item.imageUrl ? (
+        {item.images[0] ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={item.imageUrl}
+            src={item.images[0]}
             alt={item.itemName}
             loading="lazy"
             className="size-full object-cover transition-transform duration-300 group-hover:scale-105"

@@ -1,25 +1,39 @@
+import { redirect } from "next/navigation";
 import NewMenuItemForm from "@/components/vendor/NewMenuItemForm";
+import { getTokenFromServer } from "@/lib/getTokenFromServer";
+import { getMyProfile } from "@/lib/api/users";
 import { getMenuItemsByEmail } from "@/lib/api/menuItems";
-import { auth } from "@/lib/auth";
-import { IMenuItem } from "@/types/menuItem.type";
-import { TSessionUser } from "@/types/user.type";
-import { headers } from "next/headers";
+import type { IMenuItem } from "@/types/menuItem.type";
 
 const NewMenuItemPage = async () => {
-  // disableCookieCache so a fresh Premium upgrade from Stripe shows up
-  // immediately instead of waiting for the 7-day session cache to expire.
-  const session = await auth.api.getSession({
-    headers: await headers(),
-    query: { disableCookieCache: true },
-  })
-  if (!session?.user) return null
-  const user = {
-    ...session.user,
-    image: session.user.image ?? "",
-  } as TSessionUser
-  const menuItems : IMenuItem[] = await getMenuItemsByEmail(user?.email as string)
-  const activeItems = menuItems.filter(item => item.active === true)
-  const menuCount = activeItems.length
+  const token = await getTokenFromServer();
+
+  if (!token) {
+    redirect("/sign-in");
+  }
+
+  // Premium status এখন DB থেকে আসে, তাই profile fetch করা হচ্ছে
+  const profile = await getMyProfile(token);
+
+  if (profile.role !== "vendor") {
+    redirect("/");
+  }
+
+  let menuItems: IMenuItem[] = [];
+
+  try {
+    menuItems = await getMenuItemsByEmail(token);
+  } catch (error) {
+    console.error("[vendor/menu-items/new] load failed:", error);
+  }
+
+  // Free plan এর limit active item গণনা করে
+  const activeCount = menuItems.filter((item) => item.active === true).length;
+  const isPremium =
+    profile.subscriptionPlan === "premium" &&
+    Boolean(profile.subscriptionExpiresAt) &&
+    new Date(profile.subscriptionExpiresAt as string) > new Date();
+
   return (
     <div className="w-full px-4 py-8 md:px-6">
       <div className="mb-6">
@@ -32,7 +46,7 @@ const NewMenuItemPage = async () => {
         </p>
       </div>
 
-      <NewMenuItemForm menuCount = {menuCount} isPremium={user.isPremium} />
+      <NewMenuItemForm menuCount={activeCount} isPremium={isPremium} />
     </div>
   );
 };

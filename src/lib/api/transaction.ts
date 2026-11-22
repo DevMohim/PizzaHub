@@ -1,25 +1,6 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { apiFetch } from "@/lib/api/client";
+import { ITransaction } from "@/types/transaction.type";
 
-
-export const getAllTransaction =async (token:string) => {
-   try {
-     const res = await fetch(`${BASE_URL}/transactions`,{
-      headers:{
-        Authorization: `Bearer ${token}`
-      }
-     });
-
-     if (!res.ok) {
-       throw new Error(
-         `Failed to get transactions. Server returned ${res.status} ${res.statusText}.`,
-       );
-     }
-
-     return await res.json();
-   } catch (error) {
-     console.error("Get transactions failed:", error);
-
-     // আসল error message/cause যেন caller পর্যন্ত পৌঁছায়
-     throw new Error("Could not get transactions.", { cause: error });
-   }
-}
+// Admin: read-only
+export const getAllTransaction = (token?: string) =>
+  apiFetch<ITransaction[]>("/api/transactions", { token });

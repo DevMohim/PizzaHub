@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   CalendarDays,
   Clock,
@@ -10,17 +11,14 @@ import {
   XCircle,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import StatusCapsule from "@/components/shared/StatusCapsule";
-import { cn } from "cn";
-import { IOrder, OrderStatus } from "@/types/order.type";
-import { getOrdersByEmail } from "@/lib/api/orders";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import CancelOrderBtn from "@/components/customer/CancelOrderBtn";
+import { cn } from "@/lib/utils";
 import { getTokenFromServer } from "@/lib/getTokenFromServer";
-
+import { getMyProfile } from "@/lib/api/users";
+import { getMyOrders } from "@/lib/api/orders";
+import type { IOrder, OrderStatus } from "@/types/order.type";
 
 const statusStyles: Record<OrderStatus, { label: string; className: string }> =
   {
@@ -42,41 +40,40 @@ const statusStyles: Record<OrderStatus, { label: string; className: string }> =
     },
   };
 
-const OrderCard =  ({ order }: { order: IOrder }) => {
-  const status = statusStyles[order.status as OrderStatus];
+const formatDate = (value?: string) =>
+  value ? new Date(value).toLocaleDateString() : "—";
 
+const OrderCard = ({ order }: { order: IOrder }) => {
+  const status = statusStyles[order.status] ?? statusStyles.pending;
 
   return (
-    <article className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-xs transition-shadow hover:shadow-md sm:flex-row sm:items-stretch sm:gap-5">
+    <article className="border-border bg-card flex flex-col gap-4 rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-md sm:flex-row sm:items-stretch sm:gap-5">
       {/* Thumbnail */}
-      <div className="relative h-40 w-full shrink-0 overflow-hidden rounded-lg bg-muted sm:h-auto sm:w-28">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={order.itemImage}
-          alt={order.itemName}
-          className="size-full object-cover"
-          loading="lazy"
-        />
+      <div className="bg-muted relative h-40 w-full shrink-0 overflow-hidden rounded-lg sm:h-auto sm:w-28">
+        {order.itemImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={order.itemImage}
+            alt={order.itemName}
+            className="size-full object-cover"
+            loading="lazy"
+          />
+        ) : null}
       </div>
 
       {/* Details */}
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        {/* Top row — title + status */}
+        {/* Title + status */}
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-heading truncate text-base font-semibold">
-                {order.itemName}
-              </h3>
-              <Badge variant="outline" className="text-[11px]">
-                {order.itemCategory}
-              </Badge>
-            </div>
+            <h3 className="font-heading truncate text-base font-semibold">
+              {order.itemName}
+            </h3>
             <p className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
               <Utensils className="size-3.5" aria-hidden="true" />
-              {order.vendorEmail}
-              <span aria-hidden="true">·</span>
-              <span>#{order.itemId}</span>
+              <span className="truncate">
+                {order.vendorName || order.vendorEmail}
+              </span>
             </p>
           </div>
 
@@ -92,7 +89,7 @@ const OrderCard =  ({ order }: { order: IOrder }) => {
             />
             <div className="min-w-0">
               <p className="text-muted-foreground text-xs">Delivery date</p>
-              <p className="font-medium">{order.deliveryDate}</p>
+              <p className="font-medium">{formatDate(order.deliveryDate)}</p>
             </div>
           </div>
           <div className="flex items-start gap-2">
@@ -102,50 +99,47 @@ const OrderCard =  ({ order }: { order: IOrder }) => {
             />
             <div className="min-w-0">
               <p className="text-muted-foreground text-xs">Delivery address</p>
-              <p className="font-medium wrap-break-word">
-                {order.deliveryAddress}
-              </p>
+              <p className="font-medium break-words">{order.deliveryAddress}</p>
             </div>
           </div>
         </div>
 
-        {/* Footer row — price + actions */}
-        <div className="mt-auto flex flex-wrap items-end justify-between gap-3 border-t border-border pt-3">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
-            <span className="text-muted-foreground">
-              Qty{" "}
-              <span className="text-foreground font-medium">
-                {order.quantity}
-              </span>
-            </span>
-            <span className="font-heading text-primary font-bold">
-              ${order.totalAmount.toFixed(2)}
-            </span>
-            <span className="text-muted-foreground flex items-center gap-1 text-xs">
-              <Clock className="size-3.5" aria-hidden="true" />
-              Requested {order.requestedAt?.$date?.slice(0, 10) ?? ""}
-            </span>
-          </div>
+        {order.message ? (
+          <p className="text-muted-foreground text-sm">
+            Note: <span className="text-foreground">{order.message}</span>
+          </p>
+        ) : null}
 
-          {/* Cancel is only available for pending orders */}
-          {order.status === "pending" && (
-            <CancelOrderBtn order={order}/>
-          )}
+        {/* Footer */}
+        <div className="border-border mt-auto flex flex-wrap items-end justify-between gap-3 border-t pt-3">
+          <span className="text-muted-foreground flex items-center gap-1 text-xs">
+            <Clock className="size-3.5" aria-hidden="true" />
+            Requested {formatDate(order.createdAt)}
+          </span>
+
+          {/* Cancel শুধু pending order এর জন্য */}
+          {order.status === "pending" && <CancelOrderBtn order={order} />}
         </div>
       </div>
     </article>
   );
 };
 
-/* -------------------------------------------------------------------------- */
-/*                              Page                                          */
-/* -------------------------------------------------------------------------- */
+const MyOrdersPage = async () => {
+  const token = await getTokenFromServer();
 
-const MyOrdersPage = async() => {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const user = session?.user;
-  // const token = await getTokenFromServer()
-  const orders: IOrder[] = await getOrdersByEmail(user?.email as string ,);
+  if (!token) {
+    redirect("/sign-in");
+  }
+
+  const profile = await getMyProfile(token);
+
+  if (profile.role !== "customer") {
+    redirect("/");
+  }
+
+  const orders: IOrder[] = await getMyOrders(token);
+
   const total = orders.length;
   const pending = orders.filter((o) => o.status === "pending").length;
   const accepted = orders.filter((o) => o.status === "accepted").length;
@@ -179,8 +173,6 @@ const MyOrdersPage = async() => {
     },
   ] as const;
 
-
-
   return (
     <div className="w-full px-4 py-8 md:px-6">
       {/* Header */}
@@ -201,7 +193,7 @@ const MyOrdersPage = async() => {
           return (
             <div
               key={stat.label}
-              className="rounded-xl border border-border bg-card px-4 py-3 shadow-xs"
+              className="border-border bg-card rounded-xl border px-4 py-3 shadow-xs"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="font-heading text-2xl font-bold sm:text-3xl">
@@ -227,7 +219,7 @@ const MyOrdersPage = async() => {
       {/* Orders list */}
       {total > 0 ? (
         <Card className="gap-0 py-0">
-          <div className="flex flex-col gap-1 border-b border-border px-4 py-4">
+          <div className="border-border flex flex-col gap-1 border-b px-4 py-4">
             <h2 className="font-heading text-base font-medium">
               Order history
             </h2>
@@ -239,7 +231,7 @@ const MyOrdersPage = async() => {
           </div>
           <CardContent className="space-y-4 p-4">
             {orders.map((order) => (
-              <OrderCard key={order.itemId} order={order} />
+              <OrderCard key={order._id} order={order} />
             ))}
           </CardContent>
         </Card>
@@ -258,7 +250,7 @@ const MyOrdersPage = async() => {
               </p>
             </div>
             <Link
-              href="/menu"
+              href="/browse-menu"
               className={cn(
                 buttonVariants({ size: "lg" }),
                 "mt-1 h-10 bg-(image:--gradient-primary) text-white hover:opacity-90",

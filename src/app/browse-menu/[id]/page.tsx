@@ -1,5 +1,5 @@
-
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   AlertCircle,
   ArrowLeft,
@@ -7,8 +7,11 @@ import {
   ShoppingBag,
   Store,
 } from "lucide-react";
+import { getTokenFromServer } from "@/lib/getTokenFromServer";
 import { getMenuItemsById } from "@/lib/api/menuItems";
+import type { IMenuItem } from "@/types/menuItem.type";
 import ItemGallery from "@/components/browse/ItemGallery";
+import OrderForm from "@/components/customer/OrderForm";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -21,8 +24,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { getCategoryLabel } from "@/config/menuCategories";
-import { cn } from "cn";
-import OrderForm from "@/components/customer/OrderForm";
+import { cn } from "@/lib/utils";
 
 interface ItemDetailsPageProps {
   params: Promise<{ id: string }>;
@@ -31,17 +33,27 @@ interface ItemDetailsPageProps {
 const ItemDetailsPage = async ({ params }: ItemDetailsPageProps) => {
   const { id } = await params;
 
- let item: Awaited<ReturnType<typeof getMenuItemsById>> | null = null;
- let errorMessage: string | null = null;
+  const token = await getTokenFromServer();
 
- try {
-   item = await getMenuItemsById(id);
- } catch {
-   errorMessage =
-     "We couldn't load this item right now. Please refresh and try again.";
- }
+  // Item details শুধু logged-in user দেখতে পারে
+  if (!token) {
+    redirect(`/sign-in?redirect=/browse-menu/${id}`);
+  }
 
-  /* Error state */
+  let item: IMenuItem | null = null;
+  let errorMessage: string | null = null;
+
+  try {
+    item = await getMenuItemsById(id, token);
+  } catch (error) {
+    // 404 হলে item নেই, অন্য error হলে সাধারণ বার্তা
+    const status = (error as { status?: number }).status;
+    if (status !== 404) {
+      errorMessage =
+        "We couldn't load this item right now. Please refresh and try again.";
+    }
+  }
+
   if (errorMessage) {
     return (
       <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
@@ -61,11 +73,10 @@ const ItemDetailsPage = async ({ params }: ItemDetailsPageProps) => {
     );
   }
 
-  /* Not found — invalid ID or missing record */
   if (!item) {
     return (
       <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
-        <Empty className="border border-border bg-card">
+        <Empty className="border-border bg-card border">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <ShoppingBag />
@@ -93,18 +104,16 @@ const ItemDetailsPage = async ({ params }: ItemDetailsPageProps) => {
     );
   }
 
-
-  const galleryImages =
-    item.images && item.images.length > 0
-      ? item.images
-      : item.imageUrl
-        ? [item.imageUrl]
-        : [];
+  const galleryImages: string[] = (
+    Array.isArray(item.images) ? item.images : []
+  ).filter(
+    (image): image is string => typeof image === "string" && image.length > 0,
+  );
 
   return (
     <div className="w-full">
-      {/* Breadcrumb bar */}
-      <div className="border-b border-border bg-card">
+      {/* Breadcrumb */}
+      <div className="border-border bg-card border-b">
         <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-4 py-3 text-sm sm:px-6">
           <Link
             href="/browse-menu"
@@ -124,11 +133,10 @@ const ItemDetailsPage = async ({ params }: ItemDetailsPageProps) => {
 
       {/* Content */}
       <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1.15fr_1fr] lg:gap-10">
-        {/* Left — gallery + description + vendor */}
+        {/* Left */}
         <div className="space-y-8">
           <ItemGallery images={galleryImages} alt={item.itemName} />
 
-          {/* Description */}
           <section>
             <h2 className="font-heading text-lg font-semibold">Description</h2>
             <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
@@ -136,8 +144,7 @@ const ItemDetailsPage = async ({ params }: ItemDetailsPageProps) => {
             </p>
           </section>
 
-          {/* Vendor info */}
-          <section className="rounded-2xl border border-border bg-card p-4 shadow-xs">
+          <section className="border-border bg-card rounded-2xl border p-4 shadow-xs">
             <h2 className="font-heading text-lg font-semibold">Vendor</h2>
             <div className="mt-3 flex items-center gap-3">
               <span className="bg-accent text-primary flex size-10 shrink-0 items-center justify-center rounded-full">
@@ -145,7 +152,7 @@ const ItemDetailsPage = async ({ params }: ItemDetailsPageProps) => {
               </span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">
-                  {item.userEmail || "Local Pizzeria"}
+                  {item.vendorName || item.vendorEmail || "Local Pizzeria"}
                 </p>
                 <p className="text-muted-foreground flex items-center gap-1 text-xs">
                   <MapPin className="size-3.5" aria-hidden="true" />
@@ -156,9 +163,8 @@ const ItemDetailsPage = async ({ params }: ItemDetailsPageProps) => {
           </section>
         </div>
 
-        {/* Right — item summary + order option */}
+        {/* Right */}
         <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
-          {/* Summary */}
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline">{getCategoryLabel(item.category)}</Badge>
@@ -182,7 +188,6 @@ const ItemDetailsPage = async ({ params }: ItemDetailsPageProps) => {
             </div>
           </div>
 
-          {/* Order option */}
           <OrderForm item={item} />
         </div>
       </div>

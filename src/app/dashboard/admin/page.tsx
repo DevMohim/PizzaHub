@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import type { ElementType } from "react";
 import {
   Users,
   Pizza,
@@ -10,14 +12,13 @@ import {
   User2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAllUser } from "@/lib/api/users";
-import { getMenuItems } from "@/lib/api/menuItems";
-import { IUser } from "@/types/user.type";
-import { IMenuItem } from "@/types/menuItem.type";
 import { getTokenFromServer } from "@/lib/getTokenFromServer";
-import { ITransaction } from "@/types/transaction.type";
+import { getMyProfile, getAllUser } from "@/lib/api/users";
+import { getAdminMenuItems } from "@/lib/api/menuItems";
+import type { IUser } from "@/types/user.type";
+import type { IMenuItem } from "@/types/menuItem.type";
+import type { ITransaction } from "@/types/transaction.type";
 import { getAllTransaction } from "@/lib/api/transaction";
-
 
 const quickLinks = [
   {
@@ -48,7 +49,7 @@ function StatCard({
 }: {
   label: string;
   value: number;
-  icon: React.ElementType;
+  icon: ElementType;
   tone: string;
 }) {
   return (
@@ -71,55 +72,69 @@ function StatCard({
 }
 
 export default async function AdminOverviewPage() {
-  const token = await getTokenFromServer()
-   const users : IUser[] = await getAllUser(token)
-   const menuItems :IMenuItem[] = await getMenuItems()
-   const transaction : ITransaction[] = await getAllTransaction(token)
+  const token = await getTokenFromServer();
 
-   const vendors = users.filter(user => user.role === 'vendor')
-   const customers = users.filter(user => user.role === 'customer')
-   const pendingItems = menuItems.filter(item => item.status === 'pending')
+  if (!token) {
+    redirect("/sign-in");
+  }
 
-   const stats = [
-     {
-       label: "Registered users",
-       value: users.length,
-       icon: UsersRound,
-       tone: "bg-orange-100 text-orange-700",
-     },
-     {
-       label: "Vendors",
-       value: vendors.length,
-       icon: User2,
-       tone: "bg-red-100 text-red-700",
-     },
-     {
-       label: "Customers",
-       value: customers.length,
-       icon: User2,
-       tone: "bg-amber-100 text-amber-700",
-     },
-     {
-       label: "Menu items",
-       value: menuItems.length,
-       icon: Pizza,
-       tone: "bg-emerald-100 text-emerald-700",
-     },
-     {
-       label: "Pending menu items",
-       value: pendingItems.length,
-       icon: Clock,
-       tone: "bg-yellow-100 text-yellow-800",
-     },
-     {
-       label: "Transactions",
-      value: transaction.length,
-       icon: Receipt,
-       tone: "bg-stone-200 text-stone-700",
-     },
-   ];
+  const profile = await getMyProfile(token);
 
-   
+  if (profile.role !== "admin") {
+    redirect("/");
+  }
+
+  const [users, pendingItems, transactions] = await Promise.all([
+    getAllUser(token) as Promise<IUser[]>,
+    getAdminMenuItems(token, "pending") as Promise<IMenuItem[]>,
+    getAllTransaction(token) as Promise<ITransaction[]>,
+  ]);
+
+  // Total menu items দেখাতে সব item দরকার, তাই admin endpoint থেকে আনা হচ্ছে
+  const allMenuItems = (await getAdminMenuItems(token)) as IMenuItem[];
+
+  const vendors = users.filter((user) => user.role === "vendor");
+  const customers = users.filter((user) => user.role === "customer");
+
+  const stats = [
+    {
+      label: "Registered users",
+      value: users.length,
+      icon: UsersRound,
+      tone: "bg-orange-100 text-orange-700",
+    },
+    {
+      label: "Vendors",
+      value: vendors.length,
+      icon: User2,
+      tone: "bg-red-100 text-red-700",
+    },
+    {
+      label: "Customers",
+      value: customers.length,
+      icon: User2,
+      tone: "bg-amber-100 text-amber-700",
+    },
+    {
+      label: "Menu items",
+      value: allMenuItems.length,
+      icon: Pizza,
+      tone: "bg-emerald-100 text-emerald-700",
+    },
+    {
+      label: "Pending menu items",
+      value: pendingItems.length,
+      icon: Clock,
+      tone: "bg-yellow-100 text-yellow-800",
+    },
+    {
+      label: "Transactions",
+      value: transactions.length,
+      icon: Receipt,
+      tone: "bg-stone-200 text-stone-700",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-[#FFF8EF] p-4 sm:p-6 lg:p-8">
       {/* Header */}
@@ -128,7 +143,8 @@ export default async function AdminOverviewPage() {
           Admin Overview
         </h1>
         <p className="mt-1 font-sans text-sm text-stone-600">
-          Platform summary for users, vendors, menu items, and transactions.
+          Welcome, {profile.name}. Platform summary for users, vendors, menu
+          items, and transactions.
         </p>
       </div>
 
@@ -158,7 +174,7 @@ export default async function AdminOverviewPage() {
           </div>
           <Link
             href="/dashboard/admin/menu-items"
-            className="inline-flex items-center whitespace-nowrap rounded-xl bg-primary px-5 py-2.5 font-heading text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
+            className="inline-flex items-center whitespace-nowrap rounded-xl bg-(image:--gradient-primary) px-5 py-2.5 font-heading text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             Review now
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -168,26 +184,29 @@ export default async function AdminOverviewPage() {
 
       {/* Quick links */}
       <div className="grid gap-4 md:grid-cols-3">
-        {quickLinks.map((link) => (
-          <Link key={link.href} href={link.href} className="group block">
-            <Card className="h-full rounded-2xl border-orange-100 bg-white shadow-sm transition-colors group-hover:border-orange-300">
-              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-700">
-                  <link.icon className="h-5 w-5" />
-                </div>
-                <ArrowRight className="h-4 w-4 text-stone-400 transition-transform group-hover:translate-x-1" />
-              </CardHeader>
-              <CardContent className="space-y-1">
-                <CardTitle className="font-heading text-base text-stone-900">
-                  {link.title}
-                </CardTitle>
-                <p className="font-sans text-sm text-stone-500">
-                  {link.description}
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+        {quickLinks.map((link) => {
+          const Icon = link.icon;
+          return (
+            <Link key={link.href} href={link.href} className="group block">
+              <Card className="h-full rounded-2xl border-orange-100 bg-white shadow-sm transition-colors group-hover:border-orange-300">
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-700">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-stone-400 transition-transform group-hover:translate-x-1" />
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  <CardTitle className="font-heading text-base text-stone-900">
+                    {link.title}
+                  </CardTitle>
+                  <p className="font-sans text-sm text-stone-500">
+                    {link.description}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

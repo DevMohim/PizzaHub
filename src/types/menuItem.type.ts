@@ -1,22 +1,34 @@
-/** Review/publish lifecycle of a menu item. */
-export type MenuItemStatus =
-  | "pending"
-  | "approved"
-  | "rejected"
+export const MENU_CATEGORIES = [
+  "classic-pizzas",
+  "vegetarian-pizzas",
+  "meat-lovers",
+  "specialty-gourmet-pizzas",
+  "sides-appetizers",
+  "beverages-desserts",
+] as const;
+
+export type MenuCategory = (typeof MENU_CATEGORIES)[number];
+export type MenuItemStatus = "pending" | "approved" | "rejected" | "inactive";
 
 export interface IMenuItem {
-  _id?: string;
+  _id: string;
   itemName: string;
-  category: string | null;
+  category: MenuCategory;
   description: string;
   price: number;
   location: string;
-  imageUrl: string;
-  /** Optional gallery — item details shows these when available. */
-  images?: string[];
-  userEmail: string | undefined;
-  userId: string | undefined;
-  /** Set by the backend on create ("pending") and by admin review. */
-  status?: MenuItemStatus;
-  active?: boolean
+  images: string[];
+  vendorId: string;
+  vendorEmail?: string;
+  vendorName?: string;
+  status: MenuItemStatus;
+  active: boolean;
+  createdAt: string;
+  updatedAt?: string;
 }
+
+/** Create/update এ যা পাঠানো হয়। status, active, vendorId server ঠিক করে। */
+export type MenuItemInput = Pick<
+  IMenuItem,
+  "itemName" | "category" | "description" | "price" | "location" | "images"
+>;

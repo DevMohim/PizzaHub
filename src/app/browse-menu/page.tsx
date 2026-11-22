@@ -2,22 +2,21 @@ import { AlertCircle, Pizza } from "lucide-react";
 import MenuBrowser from "@/components/browse/MenuBrowser";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getMenuItems } from "@/lib/api/menuItems";
-import { IMenuItem } from "@/types/menuItem.type";
+import type { IMenuItem } from "@/types/menuItem.type";
 
-const BrowseMenuItemsPage = async () => {
-  /* Fetch the public menu — only approved & active items are shown. */
+const BrowseMenuPage = async () => {
   let initialItems: IMenuItem[] = [];
   let errorMessage: string | null = null;
 
   try {
-    const data = await getMenuItems({ status: "approved", active: "true" });
-    initialItems = Array.isArray(data) ? (data as IMenuItem[]) : [];
-  } catch {
+    const data = await getMenuItems();
+    initialItems = Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error("[browse-menu] load failed:", error);
     errorMessage =
       "We couldn't load the menu right now. Please refresh and try again.";
   }
 
-  /* Unique locations for the location filter. */
   const locations = Array.from(
     new Set(
       initialItems
@@ -28,24 +27,22 @@ const BrowseMenuItemsPage = async () => {
 
   return (
     <div className="w-full">
-      {/* Page header */}
-      <section className="bg-(image:--gradient-warm) border-b border-border">
+      <section className="bg-(image:--gradient-warm) border-border border-b">
         <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
           <span className="bg-accent text-primary inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold tracking-wide uppercase">
             <Pizza className="size-3.5" aria-hidden="true" />
             Fresh from the oven
           </span>
           <h1 className="font-heading mt-4 text-3xl font-bold sm:text-4xl">
-            Browse Our <span className="gradient-text">Menu</span>
+            Browse Our Menu
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl text-sm sm:text-base">
-            Explore approved pizzas and sides from local pizzerias — search by
+            Explore approved pizzas and sides from local pizzerias. Search by
             name, filter by category or location, and find your next favorite.
           </p>
         </div>
       </section>
 
-      {/* Content */}
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
         {errorMessage ? (
           <Alert variant="destructive">
@@ -61,4 +58,4 @@ const BrowseMenuItemsPage = async () => {
   );
 };
 
-export default BrowseMenuItemsPage;
+export default BrowseMenuPage;

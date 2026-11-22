@@ -79,7 +79,7 @@ const MenuItemsManager = ({ menuItems }: MenuItemsManagerProps) => {
       const matchesSearch =
         query === "" ||
         item.itemName.toLowerCase().includes(query) ||
-        (item.userEmail ?? "").toLowerCase().includes(query);
+        (item.vendorEmail ?? "").toLowerCase().includes(query);
 
       const matchesCategory = category === "all" || item.category === category;
 
@@ -169,10 +169,10 @@ const MenuItemsManager = ({ menuItems }: MenuItemsManagerProps) => {
                               thumbTints[index % thumbTints.length],
                             )}
                           >
-                            {item.imageUrl ? (
+                            {item.images[0] ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
-                                src={item.imageUrl}
+                                src={item.images[0]}
                                 alt={item.itemName}
                                 loading="lazy"
                                 className="size-full object-cover"
@@ -217,7 +217,7 @@ const MenuItemsManager = ({ menuItems }: MenuItemsManagerProps) => {
                                   aria-hidden="true"
                                 />
                                 <span className="max-w-40 truncate">
-                                  {item.userEmail || "Local Pizzeria"}
+                                  {item.vendorEmail || "Local Pizzeria"}
                                 </span>
                               </span>
                             </div>

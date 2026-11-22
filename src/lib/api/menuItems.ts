@@ -1,79 +1,38 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { apiFetch, withQuery } from "@/lib/api/client";
+import type { IMenuItem } from "@/types/menuItem.type";
 
 export interface MenuItemsQuery {
+  [key: string]: string | undefined;
   search?: string;
   category?: string;
   location?: string;
   sort?: string;
-  status?: string;
-  active?: string;
-  email?: string;
 }
 
-const getBaseUrl = () => {
-  if (!BASE_URL) {
-    throw new Error(
-      "NEXT_PUBLIC_API_URL is not set. Check your .env.local file.",
-    );
-  }
-  return BASE_URL;
-};
-
-/** Skips empty values and "all", which means "no filter". */
-const buildQueryString = (query: MenuItemsQuery) => {
-  const params = new URLSearchParams();
-
-  Object.entries(query).forEach(([key, value]) => {
-    if (value && value !== "all") {
-      params.set(key, value);
-    }
+// Public: token লাগে না
+export const getMenuItems = async (query: MenuItemsQuery = {}) => {
+  return apiFetch<IMenuItem[]>(withQuery("/api/menu-items", query), {
+    auth: false,
   });
-
-  return params.toString();
 };
 
-const fetchJson = async (url: string ) => {
-  const res = await fetch(url);
-
-  if (!res.ok) {
-    throw new Error(`Request failed: ${res.status} ${res.statusText} (${url})`);
-  }
-
-  return res.json();
+export const getFeaturedMenuItems = async () => {
+  return apiFetch<IMenuItem[]>("/api/menu-items/featured", { auth: false });
 };
 
-export const getMenuItems = async (query: MenuItemsQuery = {} ) => {
-  const queryString = buildQueryString(query);
-  const url = `${getBaseUrl()}/menuItems${queryString ? `?${queryString}` : ""}`;
+// Login লাগে
+export const getMenuItemsById = async (id: string ,token:string) => {
+  if (!id) throw new Error("Menu item id is required.");
 
-  try {
-    return await fetchJson(url );
-  } catch (error) {
-    console.error("Get menu items failed:", error);
-    throw error;
-  }
+  return apiFetch<IMenuItem>(`/api/menu-items/${id}` , {token});
 };
 
-export const getMenuItemsByEmail = async (email: string ) => {
-  if (!email) {
-    throw new Error("User email is required.");
-  }
-  return getMenuItems({ email});
-};
+// Vendor নিজের item
+export const getMenuItemsByEmail = (token?: string) =>
+  apiFetch<IMenuItem[]>("/api/menu-items/vendor/my", { token });
 
-export const getMenuItemsById = async (id: string) => {
-  if (!id) {
-    throw new Error("Menu item id is required.");
-  }
-
-  try {
-    return await fetchJson(`${getBaseUrl()}/menuItems/${id}`);
-  } catch (error) {
-    console.error("Get menu item failed:", error);
-    throw error;
-  }
-};
-
-export const getMenuItemsByStatus = async () => {
-  return getMenuItems({ status: "pending" });
-};
+// Admin pending queue
+export const getAdminMenuItems = (token?: string, status?: string) =>
+  apiFetch<IMenuItem[]>(withQuery("/api/menu-items/admin/all", { status }), {
+    token,
+  });

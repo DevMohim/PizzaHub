@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ImagePlus, Loader2, Plus, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
@@ -21,25 +22,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useRouter } from "next/navigation";
-import { createMenuItem } from "@/lib/actions/menuitems";
-import { useUserFromClient } from "@/utils/getUserFromClient";
+
 import { MENU_CATEGORIES } from "@/config/menuCategories";
+import { createMenuItem } from "@/lib/actions/menuitems";
+
+type MenuCategory = (typeof MENU_CATEGORIES)[number]["value"];
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
+const FREE_ACTIVE_LIMIT = 3;
 
-type FieldErrors = Partial<
-  Record<
-    "itemName" | "category" | "description" | "price" | "location" | "image",
-    string
-  >
->;
+type FormField =
+  | "itemName"
+  | "category"
+  | "description"
+  | "price"
+  | "location"
+  | "image";
+type FieldErrors = Partial<Record<FormField, string>>;
 
-const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremium : boolean | undefined }) => {
+interface NewMenuItemFormProps {
+  menuCount: number;
+  isPremium: boolean;
+}
+
+const NewMenuItemForm = ({ menuCount, isPremium }: NewMenuItemFormProps) => {
+  const router = useRouter();
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   const [itemName, setItemName] = useState("");
-  const [category, setCategory] = useState<string | null>(null);
+  const [category, setCategory] = useState<MenuCategory | "">("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [location, setLocation] = useState("");
@@ -49,27 +60,23 @@ const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremi
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const router = useRouter();
+
+  const setImageError = (message: string | undefined) =>
+    setFieldErrors((prev) => ({ ...prev, image: message }));
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setFieldErrors((prev) => ({ ...prev, image: undefined }));
+    setImageError(undefined);
 
     if (!file.type.startsWith("image/")) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        image: "Please choose an image file.",
-      }));
+      setImageError("Please choose an image file.");
       return;
     }
 
     if (file.size > MAX_IMAGE_SIZE) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        image: "Image must be 10 MB or smaller.",
-      }));
+      setImageError("Image must be 10 MB or smaller.");
       return;
     }
 
@@ -91,8 +98,8 @@ const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremi
     if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
-  /** Uploads the selected file to ImgBB through the server-side proxy. */
-  const uploadImageToImgbb = async (file: File): Promise<string> => {
+  /** Server route দিয়ে ImgBB তে upload হয়, API key browser এ যায় না। */
+  const uploadImage = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("image", file);
 
@@ -101,7 +108,7 @@ const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremi
       body: formData,
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => ({}));
 
     if (!response.ok || !result.imageUrl) {
       throw new Error(result.message || "Image upload failed");
@@ -129,17 +136,22 @@ const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremi
     return errors;
   };
 
-  const user = useUserFromClient();
+  const resetForm = () => {
+    setItemName("");
+    setCategory("");
+    setDescription("");
+    setPrice("");
+    setLocation("");
+    setFieldErrors({});
+    handleRemoveImage();
+  };
 
-  const handleCreateMenuItem = async (
-    event: React.FormEvent<HTMLFormElement>,
-  ) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (menuCount >= 3 && !isPremium) {
-      toast.error(
-        "You've reached the 3-item limit. Redirecting to the subscription page...",
-      );
+    // Free plan এ 3টির বেশি active item আনা যাবে না
+    if (menuCount >= FREE_ACTIVE_LIMIT && !isPremium) {
+      toast.error("Free plan এ 3টি active item। Premium এ upgrade করুন।");
       router.push("/dashboard/vendor/subscription");
       return;
     }
@@ -147,47 +159,30 @@ const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremi
     const errors = validate();
     setFieldErrors(errors);
 
-    if (Object.values(errors).some(Boolean)) {
+    if (Object.values(errors).some(Boolean) || !image || !category) {
       toast.error("Please fix the highlighted fields");
       return;
     }
 
-    if (!image) return;
-
     setIsSubmitting(true);
 
     try {
-      const imageUrl = await uploadImageToImgbb(image);
+      const imageUrl = await uploadImage(image);
 
-      const menuItemPayload = {
+      await createMenuItem({
         itemName: itemName.trim(),
         category,
         description: description.trim(),
         price: Number(price),
         location: location.trim(),
-        imageUrl,
-        userEmail: user?.email,
-        userId: user?.id,
-      };
+        images: [imageUrl],
+      } as Parameters<typeof createMenuItem>[0]);
 
-      const result = await createMenuItem(menuItemPayload);
-
-      if (result) {
-        toast.success("Menu item saved as pending review.");
-      }
-
-      setItemName("");
-      setCategory(null);
-      setDescription("");
-      setPrice("");
-      setLocation("");
-      handleRemoveImage();
-      setFieldErrors({});
-
+      toast.success("Menu item submitted for admin review.");
+      resetForm();
       router.push("/dashboard/vendor/menu-items");
     } catch (error) {
       console.error("Create menu item error:", error);
-
       toast.error(
         error instanceof Error
           ? error.message
@@ -208,7 +203,7 @@ const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremi
       </CardHeader>
 
       <CardContent>
-        <form onSubmit={handleCreateMenuItem} className="space-y-5" noValidate>
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           {/* Item name + Category */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div className="space-y-2">
@@ -217,7 +212,6 @@ const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremi
                 id="item-name"
                 name="itemName"
                 type="text"
-                required
                 placeholder="e.g. Margherita Classic"
                 value={itemName}
                 onChange={(e) => setItemName(e.target.value)}
@@ -234,9 +228,8 @@ const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremi
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <Select
-                items={MENU_CATEGORIES}
                 value={category}
-                onValueChange={(value) => setCategory(value as string)}
+                onValueChange={(value) => setCategory(value as MenuCategory)}
               >
                 <SelectTrigger
                   id="category"
@@ -267,7 +260,6 @@ const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremi
             <Textarea
               id="description"
               name="description"
-              required
               placeholder="Describe the ingredients, taste, and size…"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -291,7 +283,6 @@ const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremi
                 type="number"
                 min="0"
                 step="0.01"
-                required
                 placeholder="e.g. 12.99"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
@@ -309,7 +300,6 @@ const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremi
                 id="location"
                 name="location"
                 type="text"
-                required
                 placeholder="e.g. Dhanmondi, Dhaka"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
@@ -326,13 +316,13 @@ const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremi
 
           {/* Item image */}
           <div className="space-y-2">
-            <Label htmlFor="item-image">Item Image *</Label>
+            <Label htmlFor="item-image">Item Image</Label>
             <Label
               htmlFor="item-image"
               className={
                 imagePreviewUrl
-                  ? "hover:bg-accent/70 flex cursor-pointer items-center gap-3 rounded-lg border border-input bg-card p-2 transition-colors"
-                  : "hover:bg-accent/70 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-input px-3 py-6 text-center transition-colors"
+                  ? "hover:bg-accent/70 border-input bg-card flex cursor-pointer items-center gap-3 rounded-lg border p-2 transition-colors"
+                  : "hover:bg-accent/70 border-input flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed px-3 py-6 text-center transition-colors"
               }
             >
               {imagePreviewUrl ? (
@@ -376,7 +366,6 @@ const NewMenuItemForm = ({ menuCount ,isPremium }: { menuCount :number , isPremi
                 name="image"
                 type="file"
                 accept="image/*"
-                required
                 onChange={handleImageChange}
                 className="sr-only"
               />

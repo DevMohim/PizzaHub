@@ -26,10 +26,10 @@ const MenuItemCard = ({ item }: MenuItemCardProps) => {
       <div className="flex min-w-0 flex-1 gap-4">
         {/* Thumbnail */}
         <div className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-muted sm:size-20">
-          {item.imageUrl ? (
+          {item.images[0] ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={item.imageUrl}
+              src={item.images[0]}
               alt={item.itemName}
               className="size-full object-cover"
               loading="lazy"
