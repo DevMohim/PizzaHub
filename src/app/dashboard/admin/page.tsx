@@ -41,6 +41,22 @@ const quickLinks = [
   },
 ];
 
+/**
+ * The admin menu-items endpoint returns a bare array today, while the typed
+ * client expects a paginated `{ items, total, page, limit }` response. Accept
+ * both shapes so the overview works regardless of which one the server sends.
+ */
+const toMenuItems = (response: unknown): IMenuItem[] => {
+  if (Array.isArray(response)) return response as IMenuItem[];
+
+  if (response && typeof response === "object" && "items" in response) {
+    const items = (response as { items?: unknown }).items;
+    return Array.isArray(items) ? (items as IMenuItem[]) : [];
+  }
+
+  return [];
+};
+
 function StatCard({
   label,
   value,
@@ -75,7 +91,7 @@ export default async function AdminOverviewPage() {
   const token = await getTokenFromServer();
 
   if (!token) {
-    redirect("/sign-in");
+    redirect("/login");
   }
 
   const profile = await getMyProfile(token);
@@ -84,14 +100,12 @@ export default async function AdminOverviewPage() {
     redirect("/");
   }
 
-  const [users, pendingItems, transactions] = await Promise.all([
+  const [users, pendingItems, allMenuItems, transactions] = await Promise.all([
     getAllUser(token) as Promise<IUser[]>,
-    getAdminMenuItems(token, "pending") as Promise<IMenuItem[]>,
+    getAdminMenuItems({ status: "pending" }, token).then(toMenuItems),
+    getAdminMenuItems({}, token).then(toMenuItems),
     getAllTransaction(token) as Promise<ITransaction[]>,
   ]);
-
-  // Total menu items দেখাতে সব item দরকার, তাই admin endpoint থেকে আনা হচ্ছে
-  const allMenuItems = (await getAdminMenuItems(token)) as IMenuItem[];
 
   const vendors = users.filter((user) => user.role === "vendor");
   const customers = users.filter((user) => user.role === "customer");

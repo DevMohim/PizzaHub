@@ -1,6 +1,9 @@
 "use client";
 
-import { Search, ShieldCheck, Users } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { RotateCcw, Search, ShieldCheck, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -10,13 +13,91 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const ROLE_OPTIONS = [
+  { value: "all", label: "All Roles" },
+  { value: "customer", label: "Customer" },
+  { value: "vendor", label: "Vendor" },
+];
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "All Statuses" },
+  { value: "active", label: "Active" },
+  { value: "blocked", label: "Blocked" },
+];
+
+interface UsersFiltersProps {
+  initial: {
+    search: string;
+    role: string;
+    status: string;
+  };
+  resultCount: number;
+}
+
 /**
  * Search + role/status filter bar for the admin Manage Users page.
- * Design only — wire up handlers when implementing functionality.
+ * The filters are part of the URL, so the server component can pass them to
+ * `GET /api/users` and the page survives reloads and back/forward navigation.
  */
-const UsersFilters = () => {
+const UsersFilters = ({ initial, resultCount }: UsersFiltersProps) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+
+  const [search, setSearch] = useState(initial.search);
+  const [previousInitialSearch, setPreviousInitialSearch] =
+    useState(initial.search);
+
+  // Keep the input in sync when the URL changes (e.g. browser back button).
+  if (initial.search !== previousInitialSearch) {
+    setPreviousInitialSearch(initial.search);
+    setSearch(initial.search);
+  }
+
+  const updateParams = (changes: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    Object.entries(changes).forEach(([key, value]) => {
+      if (!value || value === "all") {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    });
+
+    const query = params.toString();
+
+    startTransition(() => {
+      router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    });
+  };
+
+  // Wait until the user stops typing before updating the URL / refetching.
+  useEffect(() => {
+    const trimmed = search.trim();
+    if (trimmed === initial.search) return;
+
+    const timer = setTimeout(() => {
+      updateParams({ search: trimmed || null });
+    }, 400);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  const hasFilters =
+    initial.search !== "" || initial.role !== "all" || initial.status !== "all";
+
+  const resetFilters = () => {
+    setSearch("");
+    startTransition(() => {
+      router.push(pathname, { scroll: false });
+    });
+  };
+
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-xs">
+    <div className="border-border bg-card space-y-3 rounded-2xl border p-4 shadow-xs">
       <div className="grid gap-3 md:grid-cols-[1fr_200px_200px]">
         {/* Search by name or email */}
         <div className="relative">
@@ -27,6 +108,8 @@ const UsersFilters = () => {
           <Input
             type="search"
             name="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
             placeholder="Search by name or email…"
             aria-label="Search users by name or email"
             className="h-10 pl-9"
@@ -34,7 +117,12 @@ const UsersFilters = () => {
         </div>
 
         {/* Filter by role */}
-        <Select name="role">
+        <Select
+          name="role"
+          items={ROLE_OPTIONS}
+          value={initial.role}
+          onValueChange={(value) => updateParams({ role: value ?? "all" })}
+        >
           <SelectTrigger className="h-10 w-full" aria-label="Filter by role">
             <Users
               className="text-muted-foreground size-4"
@@ -43,15 +131,21 @@ const UsersFilters = () => {
             <SelectValue placeholder="All Roles" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Roles</SelectItem>
-            <SelectItem value="customer">Customer</SelectItem>
-            <SelectItem value="vendor">Vendor</SelectItem>
-            <SelectItem value="admin">Admin</SelectItem>
+            {ROLE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
         {/* Filter by status */}
-        <Select name="status">
+        <Select
+          name="status"
+          items={STATUS_OPTIONS}
+          value={initial.status}
+          onValueChange={(value) => updateParams({ status: value ?? "all" })}
+        >
           <SelectTrigger className="h-10 w-full" aria-label="Filter by status">
             <ShieldCheck
               className="text-muted-foreground size-4"
@@ -60,12 +154,35 @@ const UsersFilters = () => {
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="blocked">Blocked</SelectItem>
+            {STATUS_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
+
+      {hasFilters && (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-muted-foreground text-xs">
+            {isPending
+              ? "Filtering users…"
+              : `${resultCount} ${resultCount === 1 ? "user" : "users"}`}
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={resetFilters}
+            disabled={isPending}
+            className="text-muted-foreground h-7 text-xs"
+          >
+            <RotateCcw aria-hidden="true" />
+            Reset
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
