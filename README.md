@@ -4,10 +4,9 @@ PizzaHub is a role-based pizza ordering platform. Customers browse menus and pla
 
 🔗 Links
 
-Live Site: https://your-live-site.com
-Client Repo: https://github.com/your-username/pizzahub-client
-Server Repo: https://github.com/your-username/pizzahub-server
-Admin Login: admin@example.com / Admin123
+Live Site: https://pizza-hub-black.vercel.app
+Client Repo:https://github.com/DevMohim/PizzaHub
+Server Repo: https://github.com/DevMohim/PizzaHub-server
 Stripe Test Card: 4242 4242 4242 4242 (any future date, any CVC)
 
 
@@ -35,6 +34,37 @@ Server: Express.js, MongoDB, jsonwebtoken, Stripe, cors, dotenv, Zod
 Advanced search & sorting — GET /api/menu-items?search=&category=&location=&sort=price_asc|price_desc&page=&limit= The server always filters status: "approved", applies a case-insensitive regex for search, adds category/location filters, then sorts by price and paginates.
 
 JWT verification — Request → verifyToken → verifyRole → ownership check → controller Invalid, missing or expired tokens return 401. Wrong role or blocked users return 403. Role and block status are always read from the database, never from the client.
+
+## Challenge Implementation
+
+### 1. Advanced Search & Sorting
+
+`GET /api/menu-items` returns only approved and active items. It supports:
+
+- `search`: case-insensitive match on name, description, or location
+- `category`: exact category match
+- `location`: case-insensitive exact match
+- `sort`: `price-asc`, `price-desc`, or newest first by default
+
+User input is escaped before it goes into a regex, so special characters are treated as plain text. The client builds the query string and skips empty values.
+
+Example: `/api/menu-items?search=pizza&category=classic-pizzas&sort=price-asc`
+
+### 2. JWT Verification
+
+Protected routes go through `verifyToken`, then `requireRole(...)` where needed.
+
+1. Read the `Bearer` token from the `Authorization` header (missing → `401`).
+2. Verify it with Better Auth's JWKS endpoint, checking the issuer against `CLIENT_URL` (invalid or expired → `401`).
+3. Load the user from MongoDB (not found → `401`, blocked → `403`).
+4. Attach `req.user` and continue. Role checks return `403` if the role is not allowed.
+
+The server never trusts `role`, `vendorId`, or `userEmail` sent from the client.
+
+### 3. Appearance
+
+Warm pizza theme (reds, oranges, cream) with shadcn/ui and Tailwind CSS. The layout is responsive across mobile, tablet, and desktop, with consistent card sizes and status badges.
+
 
 🚀 Run Locally
 bash
