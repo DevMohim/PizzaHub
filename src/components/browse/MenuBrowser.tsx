@@ -22,6 +22,11 @@ interface MenuBrowserProps {
   initialItems: IMenuItem[];
   /** Unique locations from the full menu. */
   locations: string[];
+  /**
+   * Category slug coming from the URL (e.g. a homepage category card link).
+   * Pre-selects the category filter so only that category's items show.
+   */
+  initialCategory?: string;
 }
 
 /**
@@ -29,10 +34,14 @@ interface MenuBrowserProps {
  * The server does the searching/filtering/sorting — this component only
  * sends the selected filters and renders the result.
  */
-const MenuBrowser = ({ initialItems, locations }: MenuBrowserProps) => {
+const MenuBrowser = ({
+  initialItems,
+  locations,
+  initialCategory = "all",
+}: MenuBrowserProps) => {
   const [items, setItems] = useState<IMenuItem[]>(initialItems);
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("all");
+  const [category, setCategory] = useState(initialCategory);
   const [location, setLocation] = useState("all");
   const [sort, setSort] = useState("default");
   const [loading, setLoading] = useState(false);

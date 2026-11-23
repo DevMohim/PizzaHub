@@ -1,25 +1,51 @@
 import { AlertCircle, Pizza } from "lucide-react";
 import MenuBrowser from "@/components/browse/MenuBrowser";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { MENU_CATEGORIES } from "@/config/menuCategories";
 import { getMenuItems } from "@/lib/api/menuItems";
 import type { IMenuItem } from "@/types/menuItem.type";
 
-const BrowseMenuPage = async () => {
-  let initialItems: IMenuItem[] = [];
+type SearchParams = Promise<{
+  category?: string;
+}>;
+
+/**
+ * Returns the category slug from the URL when it matches a known menu
+ * category, otherwise "all" so invalid query values fall back gracefully.
+ */
+const resolveCategory = (value?: string): string => {
+  if (!value) return "all";
+  return MENU_CATEGORIES.some((category) => category.value === value)
+    ? value
+    : "all";
+};
+
+const BrowseMenuPage = async ({ searchParams }: { searchParams: SearchParams }) => {
+  const params = await searchParams;
+  const initialCategory = resolveCategory(params.category);
+
+  let allItems: IMenuItem[] = [];
   let errorMessage: string | null = null;
 
   try {
     const data = await getMenuItems();
-    initialItems = Array.isArray(data) ? data : [];
+    allItems = Array.isArray(data) ? data : [];
   } catch (error) {
     console.error("[browse-menu] load failed:", error);
     errorMessage =
       "We couldn't load the menu right now. Please refresh and try again.";
   }
 
+  // First paint shows only the requested category (no flash of all items);
+  // MenuBrowser refetches from the server on mount to confirm.
+  const initialItems =
+    initialCategory === "all"
+      ? allItems
+      : allItems.filter((item) => item.category === initialCategory);
+
   const locations = Array.from(
     new Set(
-      initialItems
+      allItems
         .map((item) => item.location?.trim())
         .filter((location): location is string => Boolean(location)),
     ),
@@ -51,7 +77,11 @@ const BrowseMenuPage = async () => {
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         ) : (
-          <MenuBrowser initialItems={initialItems} locations={locations} />
+          <MenuBrowser
+            initialItems={initialItems}
+            locations={locations}
+            initialCategory={initialCategory}
+          />
         )}
       </div>
     </div>

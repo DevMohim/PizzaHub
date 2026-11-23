@@ -120,7 +120,7 @@ const VendorDashboardPage = async () => {
             </h1>
             <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-sm">
               <Store className="size-3.5" aria-hidden="true" />
-              {profile.name || "Your restaurant"}
+              {profile.businessName || "Your restaurant"}
             </p>
           </div>
         </div>

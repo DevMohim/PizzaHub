@@ -75,7 +75,7 @@ const CategoryGrid = ({ categories }: { categories: readonly Category[] }) => {
           {categories.map((category, index) => (
             <MotionLink
               key={category.value}
-              href="/browse-menu"
+              href={`/browse-menu?category=${category.value}`}
               variants={cardVariants}
               whileHover={reduce ? undefined : { y: -4 }}
               className="group border-border bg-card relative flex min-h-42.5 flex-col justify-between overflow-hidden rounded-2xl border p-5 transition-colors duration-200 hover:border-primary/30 hover:shadow-lg sm:p-6"
