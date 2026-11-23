@@ -106,8 +106,8 @@ const Navbar = () => {
               <Link
                 href="/login"
                 className={cn(
-                  buttonVariants({ variant: "outline", size: "lg" }),
-                  "hidden sm:inline-flex",
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "sm:h-10 sm:px-4 sm:text-sm",
                 )}
               >
                 Sign In
@@ -115,8 +115,8 @@ const Navbar = () => {
               <Link
                 href="/register"
                 className={cn(
-                  buttonVariants({ variant: "default", size: "lg" }),
-                  "bg-(image:--gradient-primary) text-white hover:opacity-90",
+                  buttonVariants({ size: "sm" }),
+                  "hidden bg-(image:--gradient-primary) text-white hover:opacity-90 sm:inline-flex sm:h-10 sm:px-4 sm:text-sm",
                 )}
               >
                 Join Free

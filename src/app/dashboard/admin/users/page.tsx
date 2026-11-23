@@ -226,7 +226,7 @@ const ManageUsersPage = async ({
             <EmptyTitle>No users found</EmptyTitle>
             <EmptyDescription>
               {search || role
-                ? "কোনো user মিলছে না। Filter বদলে আবার চেষ্টা করুন।"
+                ? "Not matching with your filter. Change filter and try again"
                 : "Registered users will appear here as soon as they sign up."}
             </EmptyDescription>
           </EmptyHeader>

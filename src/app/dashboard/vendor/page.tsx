@@ -64,6 +64,7 @@ const VendorDashboardPage = async () => {
     getOrdersByVendorEmail(token),
   ]);
 
+
   const isPremium = profile.subscriptionPlan === "premium";
   const activeItems = menuItems.filter((item) => item.active);
   const pendingOrders = orders.filter((order) => order.status === "pending");
@@ -115,11 +116,11 @@ const VendorDashboardPage = async () => {
           </Avatar>
           <div>
             <h1 className="font-heading text-2xl font-bold sm:text-3xl">
-              Welcome back, {profile.name} 👋
+              Welcome back, {profile.businessName} 👋
             </h1>
             <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-sm">
               <Store className="size-3.5" aria-hidden="true" />
-              {profile.businessName || "Your restaurant"}
+              {profile.name || "Your restaurant"}
             </p>
           </div>
         </div>

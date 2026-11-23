@@ -19,39 +19,14 @@ import {
 
 type Role = "customer" | "vendor";
 
-interface RegisterValues {
-  fullName: string;
-  email: string;
-  password: string;
-  role: Role;
-  image?: File;
-}
+type ConditionalField = FieldName | "businessName";
+type ExtendedErrors = FormErrors & { businessName?: string };
 
 interface RegisterFormProps {
   /** Initial selected role. @default "customer" */
   defaultRole?: Role;
   submitLabel?: string;
-  /** Optional custom submit handler; the default signs the user up via Better Auth. */
-  onSubmit?: (values: RegisterValues) => Promise<void> | void;
 }
-
-// /** Uploads a file to ImgBB. Requires NEXT_PUBLIC_IMGBB_API_KEY. */
-// async function uploadToImgbb(file: File): Promise<string | undefined> {
-//   const apiKey = process.env.IMGBB_API_KEY;
-//   if (!apiKey) return undefined;
-
-//   const body = new FormData();
-//   body.append("image", file);
-//   const response = await fetch(
-//     `https://api.imgbb.com/1/upload?key=${apiKey}`,
-//     { method: "POST", body }
-//   );
-//   const result = await response.json();
-//   if (!result?.success || !result?.data?.url) {
-//     throw new Error("Image upload failed");
-//   }
-//   return result.data.url as string;
-// }
 
 const readValues = (form: HTMLFormElement): Record<FieldName, string> => {
   const data = new FormData(form);
@@ -101,9 +76,15 @@ function RegisterForm({
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [image, setImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [errors, setErrors] = useState<ExtendedErrors>({});
+  const [role, setRole] = useState<Role>(defaultRole);
+  const [businessName, setBusinessName] = useState("");
 
-  // Validate a field when the user leaves it.
+  const isVendor = role === "vendor";
+
+  const validateBusinessName = (value: string) =>
+    isVendor && !value.trim() ? "Restaurant name is required." : undefined;
+
   const handleBlur = (event: React.FocusEvent<HTMLInputElement>) => {
     const form = event.currentTarget.form;
     if (!form) return;
@@ -114,7 +95,6 @@ function RegisterForm({
 
     setErrors((prev) => {
       const next = { ...prev, [field]: message };
-      // Changing the password also affects the confirm field.
       if (field === "password" && values.confirmPassword) {
         next.confirmPassword = validateField(
           "confirmPassword",
@@ -126,7 +106,6 @@ function RegisterForm({
     });
   };
 
-  // While typing, only update a field that already shows an error.
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const form = event.currentTarget.form;
     if (!form) return;
@@ -136,19 +115,44 @@ function RegisterForm({
 
     const values = readValues(form);
     const message = validateField(field, values[field], values.password);
-    setErrors((prev: FormErrors) => ({ ...prev, [field]: message }));
+    setErrors((prev) => ({ ...prev, [field]: message }));
   };
 
-  // Local preview only — upload to ImgBB happens on submit later.
+  const handleBusinessNameChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const value = event.target.value;
+    setBusinessName(value);
+    if (errors.businessName) {
+      setErrors((prev) => ({
+        ...prev,
+        businessName: validateBusinessName(value),
+      }));
+    }
+  };
+
+  const handleBusinessNameBlur = () => {
+    setErrors((prev) => ({
+      ...prev,
+      businessName: validateBusinessName(businessName),
+    }));
+  };
+
+  const handleRoleChange = (value: string) => {
+    const nextRole = value === "vendor" ? "vendor" : "customer";
+    setRole(nextRole);
+    // Customer হলে restaurant name error সরিয়ে দিন
+    if (nextRole === "customer") {
+      setErrors((prev) => ({ ...prev, businessName: undefined }));
+    }
+  };
+
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-
     if (!file) return;
 
     setImage(file);
-
     const url = URL.createObjectURL(file);
-
     setImagePreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return url;
@@ -157,22 +161,17 @@ function RegisterForm({
 
   const handleRemoveImage = () => {
     setImage(null);
-
     setImagePreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return null;
     });
-
-    if (imageInputRef.current) {
-      imageInputRef.current.value = "";
-    }
+    if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
   const handleImageUpload = async (): Promise<string | null> => {
     if (!image) return null;
 
     const formData = new FormData();
-
     formData.append("image", image);
 
     const response = await fetch("/api/upload", {
@@ -196,11 +195,20 @@ function RegisterForm({
 
     const form = event.currentTarget;
     const values = readValues(form);
-    const nextErrors = validateAll(values);
+    const nextErrors: ExtendedErrors = {
+      ...validateAll(values),
+      businessName: validateBusinessName(businessName),
+    };
+
+    // Customer হলে businessName error থাকবে না
+    if (!isVendor) delete nextErrors.businessName;
 
     setErrors(nextErrors);
 
-    const firstInvalid = Object.keys(nextErrors)[0] as FieldName | undefined;
+    const firstInvalid = Object.keys(nextErrors).find(
+      (key) => nextErrors[key as ConditionalField],
+    ) as ConditionalField | undefined;
+
     if (firstInvalid) {
       (form.elements.namedItem(firstInvalid) as HTMLElement | null)?.focus();
       return;
@@ -208,27 +216,22 @@ function RegisterForm({
 
     setLoading(true);
 
-    const roleValue =
-      (new FormData(form).get("role") as Role | null) || defaultRole;
-
-    const userData = {
-      name: values.name,
-      email: values.email,
-      password: values.password,
-    };
-
     try {
       const imageUrl = await handleImageUpload();
 
       const { data, error } = await signUp.email({
-        ...userData,
-        role: roleValue,
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        role,
+        // শুধু vendor এর জন্য; customer এ undefined যাবে
+        businessName: isVendor ? businessName.trim() : undefined,
         image: imageUrl ?? undefined,
       });
 
       if (error) {
         toast.error(error.message ?? "Failed to create account");
-        throw error;
+        return;
       }
 
       if (data) {
@@ -236,27 +239,21 @@ function RegisterForm({
         router.push("/");
       }
     } catch (error) {
-  console.error("REGISTER ERROR:", error);
-
-  if (error instanceof Error) {
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
-  }
-
-  toast.error(
-    error instanceof Error
-      ? error.message
-      : "Something went wrong. Please try again."
-  );
-} finally {
-  setLoading(false);
-}
+      console.error("REGISTER ERROR:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const passwordType = showPassword ? "text" : "password";
   const confirmPasswordType = showConfirmPassword ? "text" : "password";
 
-  const inputClass = (field: FieldName, base: string) =>
+  const inputClass = (field: ConditionalField, base: string) =>
     `${base} ${errors[field] ? "border-destructive" : ""}`;
 
   return (
@@ -324,28 +321,51 @@ function RegisterForm({
         <Label>Register as</Label>
         <RadioGroup
           name="role"
-          defaultValue={defaultRole}
+          value={role}
+          onValueChange={handleRoleChange}
           className="grid-cols-2 gap-2"
         >
-          {roleOptions.map((role) => (
+          {roleOptions.map((option) => (
             <FieldLabel
-              key={role.value}
+              key={option.value}
               className="hover:border-primary/50 cursor-pointer flex-row items-center gap-2 rounded-lg border border-input bg-card p-2.5 text-left transition-colors has-data-checked:border-primary has-data-checked:bg-accent"
             >
-              <span className="text-primary">{role.icon}</span>
+              <span className="text-primary">{option.icon}</span>
               <span className="space-y-0.5">
                 <span className="font-heading block text-xs font-semibold">
-                  {role.label}
+                  {option.label}
                 </span>
                 <span className="text-muted-foreground block text-[11px] leading-none">
-                  {role.description}
+                  {option.description}
                 </span>
               </span>
-              <RadioGroupItem value={role.value} className="sr-only" />
+              <RadioGroupItem value={option.value} className="sr-only" />
             </FieldLabel>
           ))}
         </RadioGroup>
       </div>
+
+      {/* Restaurant name: শুধু vendor এর জন্য */}
+      {isVendor && (
+        <div className="space-y-2">
+          <Label htmlFor="business-name">Restaurant Name</Label>
+          <Input
+            id="business-name"
+            name="businessName"
+            type="text"
+            placeholder="e.g. RC Pizzeria"
+            value={businessName}
+            onChange={handleBusinessNameChange}
+            onBlur={handleBusinessNameBlur}
+            aria-invalid={!!errors.businessName}
+            aria-describedby={
+              errors.businessName ? "business-name-error" : undefined
+            }
+            className={inputClass("businessName", "h-10")}
+          />
+          <FieldError id="business-name-error" message={errors.businessName} />
+        </div>
+      )}
 
       {/* Full name */}
       <div className="space-y-2">
@@ -457,7 +477,7 @@ function RegisterForm({
         type="submit"
         size="lg"
         disabled={loading}
-        className="h-10 w-full bg-(image:--gradient-primary) text-white hover:opacity-90 cursor-pointer"
+        className="h-10 w-full cursor-pointer bg-(image:--gradient-primary) text-white hover:opacity-90"
       >
         {loading ? (
           <>

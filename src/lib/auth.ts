@@ -41,6 +41,11 @@ export const auth = betterAuth({
         input: true,
         defaultValue: "customer",
       },
+      businessName: {
+        type: "string",
+        required: false,
+        input: true,
+      },
       isBlocked: {
         type: "boolean",
         required: false,
@@ -65,16 +70,24 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user) => {
+          const data = user as Record<string, unknown>;
+
           // Public sign-up এ admin হওয়া যাবে না
-          const requested = (user as { role?: string }).role;
-          const role = ALLOWED_SIGNUP_ROLES.includes(requested as never)
-            ? requested
+          const role = ALLOWED_SIGNUP_ROLES.includes(data.role as never)
+            ? (data.role as string)
             : "customer";
+
+          // businessName শুধু vendor এর জন্য
+          const businessName =
+            role === "vendor" && typeof data.businessName === "string"
+              ? data.businessName.trim()
+              : undefined;
 
           return {
             data: {
-              ...user,
+              ...data,
               role,
+              businessName,
               isBlocked: false,
               subscriptionPlan: "free",
               subscriptionExpiresAt: null,
@@ -85,11 +98,8 @@ export const auth = betterAuth({
       update: {
         before: async (data) => {
           // Profile update দিয়ে role বদলানো যাবে না
-          const rest = Object.fromEntries(
-            Object.entries(data as Record<string, unknown>).filter(
-              ([key]) => key !== "role",
-            ),
-          );
+          const rest = { ...(data as Record<string, unknown>) };
+          delete rest.role;
           return { data: rest };
         },
       },

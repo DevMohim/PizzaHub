@@ -99,7 +99,7 @@ const OrderCard = ({ order }: { order: IOrder }) => {
             />
             <div className="min-w-0">
               <p className="text-muted-foreground text-xs">Delivery address</p>
-              <p className="font-medium break-words">{order.deliveryAddress}</p>
+              <p className="font-medium wrap-break-words">{order.deliveryAddress}</p>
             </div>
           </div>
         </div>
