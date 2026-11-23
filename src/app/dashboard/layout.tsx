@@ -1,6 +1,7 @@
 import { SidebarInset, SidebarProvider} from "@/components/ui/sidebar";
 import { ReactNode } from "react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import BackToDashboard from "@/components/dashboard/BackToDashboard";
 
 const DashboardLayout = ({ children }: { children: ReactNode }) => {
   return (
@@ -13,6 +14,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
           <SidebarTrigger />
         </div> */}
 
+        <BackToDashboard />
         <div className="w-full flex-1">{children}</div>
       </SidebarInset>
     </SidebarProvider>

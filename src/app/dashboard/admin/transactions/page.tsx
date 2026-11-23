@@ -1,16 +1,12 @@
 import { redirect } from "next/navigation";
 import {
   BadgeCheck,
-  CalendarDays,
-  ChevronDown,
   CircleX,
   Clock3,
   Crown,
-  Eye,
   Info,
   Receipt,
   RefreshCw,
-  Search,
   ShieldCheck,
   Wallet,
 } from "lucide-react";
@@ -81,8 +77,6 @@ const avatarTones = [
   "bg-warning/10 text-warning",
 ];
 
-const filters = ["All", "Paid", "Pending", "Refunded", "Failed"];
-
 const getStatusStyle = (status?: string) => {
   const key = status?.toLowerCase() ?? "";
   return (
@@ -110,12 +104,6 @@ const formatTime = (date: Date) =>
   date.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
-  });
-
-const formatMonth = (date: Date) =>
-  date.toLocaleDateString("en-GB", {
-    month: "short",
-    year: "numeric",
   });
 
 const formatCurrency = (amount: number, currency = "usd") => {
@@ -411,47 +399,6 @@ const TransactionPage = async () => {
                 </CardAction>
               </CardHeader>
 
-              {/* Toolbar: এখন static, filter চাইলে পরের ধাপে URL দিয়ে যুক্ত করা যাবে */}
-              <div className="border-border flex flex-col gap-3 border-b px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="relative w-full lg:max-w-xs">
-                  <Search
-                    aria-hidden="true"
-                    className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
-                  />
-                  <input
-                    type="search"
-                    readOnly
-                    aria-label="Search vendor or transaction ID"
-                    placeholder="Search vendor or transaction ID"
-                    className="border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/20 h-9 w-full rounded-lg border pr-3 pl-9 text-sm shadow-xs outline-none transition focus-visible:ring-3"
-                  />
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {filters.map((filter, index) => (
-                      <span
-                        key={filter}
-                        className={cn(
-                          "inline-flex h-8 items-center rounded-full px-3 text-xs font-medium whitespace-nowrap",
-                          index === 0
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "border-border bg-background text-muted-foreground border",
-                        )}
-                      >
-                        {filter}
-                      </span>
-                    ))}
-                  </div>
-
-                  <span className="text-muted-foreground border-border bg-background inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium whitespace-nowrap">
-                    <CalendarDays className="size-3.5" aria-hidden="true" />
-                    {latestDate ? formatMonth(latestDate) : "All time"}
-                    <ChevronDown className="size-3.5" aria-hidden="true" />
-                  </span>
-                </div>
-              </div>
-
               <CardContent className="px-0">
                 <Table className="min-w-5xl">
                   <TableHeader>
@@ -474,9 +421,7 @@ const TransactionPage = async () => {
                       <TableHead className="w-36 text-[11px] tracking-wider uppercase">
                         Date
                       </TableHead>
-                      <TableHead className="w-16 pr-4 text-right text-[11px] tracking-wider uppercase">
-                        View
-                      </TableHead>
+                      
                     </TableRow>
                   </TableHeader>
 
@@ -591,14 +536,7 @@ const TransactionPage = async () => {
                           </TableCell>
 
                           {/* View (read-only) */}
-                          <TableCell className="py-3 pr-4 text-right align-middle">
-                            <span
-                              className="text-muted-foreground border-border bg-background inline-flex size-8 items-center justify-center rounded-lg border"
-                              aria-hidden="true"
-                            >
-                              <Eye className="size-4" />
-                            </span>
-                          </TableCell>
+                          
                         </TableRow>
                       );
                     })}

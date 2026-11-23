@@ -13,7 +13,7 @@ const ActionBtns = ({order} : {order:IOrder}) => {
    const handleOrderApproved = async() => {
       try {
          console.log("item id", order?.itemId);
-        await updateAcceptedOrder(order.itemId);
+        await updateAcceptedOrder(order._id);
         toast.success("Order approved");
         router.refresh();
       } catch (error) {
@@ -23,7 +23,7 @@ const ActionBtns = ({order} : {order:IOrder}) => {
    }
    const handleOrderReject = async () => {
      try {
-       await updateRejectOrder(order.itemId);
+       await updateRejectOrder(order._id);
        toast.success("Order rejected");
        router.refresh();
      } catch (error) {
